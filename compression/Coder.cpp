@@ -255,7 +255,7 @@ void avi_to_h264(AVIMaker &aviMaker) {
 
     print_block(frame1, posX, posY, 4, 4);
     print_block(frame2, posX + v.x, posY + v.y, 4, 4);
-    //subtract_block(frame1, frame2, out, block_info, v);
+    //subtract_block(frame1, frame2, m_enc, block_info, v);
     //subtract_to_4x4_block(frame1, frame1, block, block_info, v);
     block_from_frame(block, frame1, block_info);
 
@@ -279,7 +279,7 @@ void avi_to_h264(AVIMaker &aviMaker) {
      printf("mrx2:\n");
      print_block(frame2, posX + v.x, posY + v.y, 4, 4);
      printf("Diff:\n");
-     print_block(out, posX, posY, 4, 4);
+     print_block(m_enc, posX, posY, 4, 4);
 
  */
     //mark_range((TRIPLERGB **) frame1, posX, posY, 4, 4);

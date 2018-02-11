@@ -25,26 +25,30 @@ static FILE *pLogFile = fopen("log.txt", "a+");
 
 #define LOG(msg, ...) { \
     if (pLogFile == nullptr) pLogFile = fopen("log.txt", "a+");\
+    std::chrono::system_clock::time_point PPPPP_TIMESTAMP = std::chrono::system_clock::now(); \
+    std::time_t PPP_TIME = std::chrono::system_clock::to_time_t(PPPPP_TIMESTAMP); \
+    std::string PPPPP_TIMETIME = std::ctime(&PPP_TIME); \
+    PPPPP_TIMETIME = PPPPP_TIMETIME.substr(0, PPPPP_TIMETIME.length() - 1); \
     switch (msg) { \
         case ERROR: \
-            printf(ANSI_COLOR_RED "ERROR:  \t"  "%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
-            fprintf(pLogFile, "ERROR:  \t%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
+            printf(ANSI_COLOR_RED "ERROR:  \t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            fprintf(pLogFile, "ERROR:  \t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
             break;\
         case WARN:\
-            printf(ANSI_COLOR_YELLOW "WARNING:\t"  "%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
-            fprintf(pLogFile, "WARNING:\t%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
+            printf(ANSI_COLOR_YELLOW "WARNING:\t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            fprintf(pLogFile, "WARNING:\t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
             break;\
         case INFO:\
-            printf("INFO:   \t""%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
-            fprintf(pLogFile, "INFO:   \t""%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
+            printf("INFO:   \t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            fprintf(pLogFile, "INFO:   \t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
             break;\
         case TIMER:\
-            printf(ANSI_COLOR_MAGENTA "TIMER:"  "  \t""%s\t%s[%d]:\t" , __TIME__, __FILENAME__, __LINE__);\
-            fprintf(pLogFile, "TIMER:  \t""%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
+            printf(ANSI_COLOR_MAGENTA "TIMER:  \t""%s\t%s[%d]:\t" , PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            fprintf(pLogFile, "TIMER:  \t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
             break;\
         case MAIN:\
-            printf(ANSI_COLOR_BLUE "MAIN:"  "   \t""%s\t%s[%d]:\t" , __TIME__, __FILENAME__, __LINE__);\
-            fprintf(pLogFile, "MAIN:   \t""%s\t%s[%d]:\t", __TIME__, __FILENAME__, __LINE__);\
+            printf(ANSI_COLOR_BLUE "MAIN:"  "   \t""%s\t%s[%d]:\t" , PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            fprintf(pLogFile, "MAIN:   \t%s\t%s[%d]:\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
             break;\
         default:\
             printf("UNKNOWN::");\

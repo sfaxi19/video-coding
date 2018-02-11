@@ -3,6 +3,8 @@
 #ifndef VIDEO_COMPRESSION_CABACFSM_HPP
 #define VIDEO_COMPRESSION_CABACFSM_HPP
 
+#include <utility>
+
 #include "iostream"
 #include "common/global.hpp"
 
@@ -89,10 +91,24 @@ static uint8_t rangeTabLPS[64][4] = {
 class CabacFsm {
 private:
     uint16_t m_stateIdx = 0;
-    int8_t m_valMPS = 0;
+    uint8_t m_valMPS = 0;
+
+    uint32_t range = 510;
+    uint32_t low = 0;
+    uint32_t bitsOut = 0;
+    uint8_t firstBitFlag = 1;
+    std::string m_enc = "";
+    std::string m_dec = "";
+    uint32_t offset = 0;
+    bool offsetInit = false;
+
 public:
-    CabacFsm(int8_t valMPS) : m_valMPS(valMPS) {
+    CabacFsm(uint8_t valMPS) : m_valMPS(valMPS) {
         LOG(INFO, "Cabac init with valMPS=%d", valMPS);
+    }
+
+    CabacFsm(uint8_t valMPS, const std::string &enc) : m_valMPS(valMPS) {
+        m_enc.append(enc);
     }
 
 private:
@@ -100,25 +116,23 @@ private:
 
     void transIdxMPS() { m_stateIdx = stateTransTable[TABLE_MPS_IDX][m_stateIdx]; }
 
-    void transIdx(const int8_t val) {
-        if (val == m_valMPS) {
-            transIdxMPS();
-        } else {
-            if (m_stateIdx == 0) {
-                m_valMPS = static_cast<int8_t>(1 - m_valMPS);
-            }
-            transIdxLPS();
-        }
-    }
+    void putBit(uint8_t bit);
 
-public:
-    void encodeBin(uint8_t binVal);
+    uint32_t read_bits(int len);
 
     void renormEncode();
 
-    void decodeBin();
-
     void renormDecode();
+
+public:
+    std::string getEncode() { return m_enc; }
+
+    std::string getDecode() { return m_dec; }
+
+    void encodingEngine(uint8_t binVal);
+
+    void decodingEngine();
+
 };
 
 
