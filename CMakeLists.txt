@@ -10,7 +10,7 @@ set(SOURCE_FILES main.cpp
         compression/CabacFsm.hpp
         compression/ExpGolombCodes.hpp
         compression/ExpGolombCodes.cpp
-        compression/common/global.hpp)
+        compression/common/global.hpp compression/Scanning.cpp compression/Scanning.hpp compression/DCT.hpp compression/DCT.cpp)
 
 add_executable(video-compression ${SOURCE_FILES})
 

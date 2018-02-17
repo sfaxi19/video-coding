@@ -5,6 +5,11 @@
 #include "Coder.hpp"
 #include "bmp_lib/bmp.h"
 #include "motion_compensation/motion_compensation.h"
+#include "Scanning.hpp"
+#include "common/global.hpp"
+#include "ExpGolombCodes.hpp"
+#include "DCT.hpp"
+#include "CabacFsm.hpp"
 
 inline int sign(int x) {
     return (x >= 0) ? 1 : -1;
@@ -21,52 +26,7 @@ void mark_range(TRIPLERGB **frame, int x, int y, int h, int w) {
         frame[y + h - 1][i].red = 255;
 }
 
-const double a = (double) 1 / 2;
-const double a2 = pow(a, 2);
-const double b = sqrt((double) 2 / 5);
-const double b2 = pow(b, 2);
-const double ab_2 = (a * b) / 2;
-double E[4][4] = {
-        {a2,   ab_2,   a2,   ab_2},
-        {ab_2, b2 / 4, ab_2, b2 / 4},
-        {a2,   ab_2,   a2,   ab_2},
-        {ab_2, b2 / 4, ab_2, b2 / 4}
-};
-double C[4][4] = {
-        {1, 1,  1,  1},
-        {2, 1,  -1, -2},
-        {1, -1, -1, 1},
-        {1, -2, 2,  -1}};
-
-double CT[4][4] = {
-        {1, 2,  1,  1},
-        {1, 1,  -1, -2},
-        {1, -1, -1, 2},
-        {1, -2, 1,  -1}};
-double Ci[4][4] = {
-        {1,   1,   1,    1},
-        {1,   0.5, -0.5, -1},
-        {1,   -1,  -1,   1},
-        {0.5, -1,  1,    -0.5}};
-
-double CTi[4][4] = {
-        {1, 1,    1,  0.5},
-        {1, 0.5,  -1, -1},
-        {1, -0.5, -1, 1},
-        {1, -1,   1,  -0.5}};
-double Ei[4][4] = {
-        {a2,    a * b, a2,    a * b},
-        {a * b, b2,    a * b, b2},
-        {a2,    a * b, a2,    a * b},
-        {a * b, b2,    a * b, b2}
-};
-
 double Qstep[10] = {0.625, 0.6875, 0.8125, 0.875, 1, 1.125, 1.25, 1.375, 1.625, 1.75};
-enum class MultipMode : int {
-    NORM = 0,
-    REVERSE = 1,
-    SIMPLE
-};
 
 void print_block(double block[][4]) {
     for (int i = 0; i < 4; i++) {
@@ -89,6 +49,16 @@ void print_block(const char *title, double **block) {
     printf("\n");
 }
 
+std::string block_to_string(double **block) {
+    std::string binStr = "";
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%8.2f", block[i][j]);
+        }
+    }
+    printf("\n");
+}
+
 void print_block(TRIPLEYCbCr **frame, int x, int y, int h, int w) {
     for (int i = y; i < y + h; i++) {
         for (int j = x; j < x + w; j++) {
@@ -97,41 +67,6 @@ void print_block(TRIPLEYCbCr **frame, int x, int y, int h, int w) {
         printf("\n");
     }
     printf("\n");
-}
-
-void multiple(double **block, double matrix[][4], double **out, MultipMode mode) {
-    double mrx[4][4];
-    if (mode != MultipMode::SIMPLE) {
-        for (int id_h = 0; id_h < 4; id_h++) {
-            for (int id_w = 0; id_w < 4; id_w++) {
-                mrx[id_h][id_w] = 0;
-                for (int i = 0; i < 4; i++) {
-                    mrx[id_h][id_w] += (mode == MultipMode::NORM) ?
-                                       block[id_h][i] * matrix[i][id_w] :
-                                       matrix[id_h][i] * block[i][id_w];
-                }
-            }
-        }
-    }
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            if (mode != MultipMode::SIMPLE)out[i][j] = mrx[i][j];
-            else out[i][j] = block[i][j] * matrix[i][j];
-        }
-    }
-}
-
-void idct(double **block) {
-    multiple(block, E, block, MultipMode::SIMPLE);
-    multiple(block, CT, block, MultipMode::REVERSE);
-    multiple(block, C, block, MultipMode::NORM);
-}
-
-int dct(double **block) {
-    multiple(block, C, block, MultipMode::REVERSE);
-    multiple(block, CT, block, MultipMode::NORM);
-    multiple(block, E, block, MultipMode::SIMPLE);
-    return (int) block[0][0];
 }
 
 int w[6][3] = {{13107, 5243, 8066},
@@ -236,6 +171,10 @@ subtract_to_4x4_block(TRIPLEYCbCr **base, TRIPLEYCbCr **target, double **block, 
     }
 }
 
+uint8_t getBit(char ch) {
+    return static_cast<uint8_t>((ch == '1') ? 1 : 0);
+}
+
 void avi_to_h264(AVIMaker &aviMaker) {
     VideoStream *video = aviMaker.videoStreams[0];//video();
     TRIPLEYCbCr **frame1 = RGB2YCbCr(video->getFrame(7), video->height(), video->width());
@@ -266,49 +205,44 @@ void avi_to_h264(AVIMaker &aviMaker) {
     quant_block(block, QS);
     print_block("QUANT:", block);
 
+    std::string data = "";
+
+    Scanning scan(Scanning::ZIG_ZAG);
+    while (!scan.stop()) {
+        mc::pos pos = scan.nextStep();
+        data.append(getExpCodeString((uint32_t) block[pos.y][pos.x]));
+        LOG(INFO, "%3d - %s", (int) block[pos.y][pos.x], getExpCodeString((uint32_t) block[pos.y][pos.x]).c_str());
+    }
+
+
+    uint8_t  MPS = 1;
+    uint16_t stateIdx = 0;
+    CabacFsm cabac(MPS, stateIdx);
+    for (int i = 0; i < data.size(); i++) {
+        cabac.encodingEngine(getBit(data[i]));
+    }
+   // cabac.terminateEncode(1);
+    CabacFsm cabacDecode(MPS, stateIdx, cabac.getEncode());
+    for (int i = 0; i < data.size(); i++) {
+        cabacDecode.decodingEngine();
+    }
+    //cabacDecode.terminateDecode();
+
+    LOG(INFO, "Input data:  %s", data.c_str());
+    LOG(INFO, "Encode data: %s", cabac.getEncode().c_str());
+    if (data == cabacDecode.getDecode()) {
+        LOG(INFO, ANSI_COLOR_GREEN "Decode data: %s", cabacDecode.getDecode().c_str());
+    } else {
+        LOG(INFO, ANSI_COLOR_RED "Decode data: %s", cabacDecode.getDecode().c_str());
+    }
+
+
+
     iquant_block(block, QS);
-    //block[0][0] = dc;
     print_block("IQUANT:", block);
-    //multiple(block, E, block, MultipMode::SIMPLE);
-    //multiple(block, E, block, MultipMode::SIMPLE);
+
 
     idct(block);
     print_block("IDCT:", block);
-    /* printf("mrx1:\n");
-     print_block(frame1, posX, posY, 4, 4);
-     printf("mrx2:\n");
-     print_block(frame2, posX + v.x, posY + v.y, 4, 4);
-     printf("Diff:\n");
-     print_block(m_enc, posX, posY, 4, 4);
 
- */
-    //mark_range((TRIPLERGB **) frame1, posX, posY, 4, 4);
-    //save_component_to_files((TRIPLEBYTES **) frame1, video->bmFile(), video->bmInfo(), COMPONENT_Y,
-    //                        "currentframe.bmp");
-
-    //dct(block);
 }
-
-
-
-/*
- *
-DCT:
-  314.50   -5.69    0.50   -1.26
-    2.37    0.20    0.47    0.10
-   -1.00    1.26   -1.00    2.21
-   -0.79   -1.40   -0.16    4.30
-
-QUANT:
-  125.00   -1.00    0.00    0.00
-    0.00    0.00    0.00    0.00
-    0.00    0.00    0.00    0.00
-    0.00    0.00    0.00    0.00
-
-IQUANT:
-  312.00   -5.00    0.00    0.00
-    0.00    0.00    0.00    0.00
-    0.00    0.00    0.00    0.00
-    0.00    0.00    0.00    0.00
- *
- */

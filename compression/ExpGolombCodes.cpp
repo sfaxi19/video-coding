@@ -556,3 +556,30 @@ void ExpCodeInit() {
     ExpCode[255 + (-255)] = 0b00000000111111111 << 15;
     init = true;
 }
+
+std::string getExpCodeString(int value) {
+    uint32_t expCode = getExpCode(value);
+    std::string str = "";
+    uint32_t shift_bit = 0x80000000;
+    uint32_t count = 0;
+    bool isZeroBits = true;
+    while (isZeroBits || (count > 0)) {
+        if ((expCode & shift_bit) == 0) {
+            str.append("0");
+            if (isZeroBits) {
+                count++;
+            } else {
+                count--;
+            }
+        } else {
+            if (isZeroBits) {
+                isZeroBits = false;
+            } else {
+                count--;
+            }
+            str.append("1");
+        }
+        shift_bit = shift_bit >> 1;
+    }
+    return str;
+}

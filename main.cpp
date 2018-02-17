@@ -11,29 +11,37 @@
 
 int main() {
     //system("rm log.txt");
-    //AVIMaker avi_file("../avi-maker/resources/lr1_1.AVI");
-    //avi_file.saveVideoStreamToBMP("cm_files/");
-    //avi_to_h264(avi_file);
+    AVIMaker avi_file("../avi-maker/resources/lr1_1.AVI");
+    avi_file.saveVideoStreamToBMP("cm_files/");
+    avi_to_h264(avi_file);
     //ExpCodeGen();
     //uint32_t id1 = timer_start();
 
     //static_cast<uint8_t>((((double)rand()/RAND_MAX) < 0.8) ? 1 : 0)
+/*
+    std::string data = "000000000000000000000011010000000000100000000000000000001100000000000000000000001010";
 
-    CabacFsm cabac(0);
-    //srand(time(nullptr));
-    std::string data = "111111111111101011101101110111111011111101111111011101111111111010111111110000";
-
+    uint8_t  MPS = 0;
+    uint16_t stateIdx = 60;
+    CabacFsm cabac(MPS, stateIdx);
     for (int i = 0; i < data.size(); i++) {
-        cabac.encodingEngine(static_cast<uint8_t>((data[i] == '1') ? 1 : 0));
+        cabac.encodingEngine(getBit(data[i]));
     }
-    CabacFsm cabacDecode(0, cabac.getEncode());
+    cabac.terminateEncode(1);
+    CabacFsm cabacDecode(MPS, stateIdx, cabac.getEncode());
     for (int i = 0; i < data.size(); i++) {
         cabacDecode.decodingEngine();
     }
-    //timer_stop_us(id1);
+    //cabacDecode.terminateDecode();
+
     LOG(INFO, "Input data:  %s", data.c_str());
-    LOG(INFO, "Encode data: %s", cabacDecode.getEncode().c_str());
-    LOG(INFO, "Decode data: %s", cabacDecode.getDecode().c_str());
-    system("rm log.txt");
+    LOG(INFO, "Encode data: %s", cabac.getEncode().c_str());
+    if (data == cabacDecode.getDecode()) {
+        LOG(INFO, ANSI_COLOR_GREEN "Decode data: %s", cabacDecode.getDecode().c_str());
+    } else {
+        LOG(INFO, ANSI_COLOR_RED "Decode data: %s", cabacDecode.getDecode().c_str());
+    }*/
+    //LOG(ERROR, "Fail!");
+    //system("rm log.txt");
     return 0;
 }
