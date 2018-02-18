@@ -14,7 +14,7 @@ std::string BitStream::toString() {
             .append(" / " + std::to_string(m_byte_length) + " bytes)");
 }
 
-void BitStream::bushBit(uint8_t value) {
+void BitStream::pushBit(uint8_t value) {
     m_bit_pos++;
     LOG(MAIN, "%s(value=%u, bit_pos=%d)", __FUNCTION__, value, m_bit_pos);
     if (m_bit_pos % 8 == 0) {
@@ -51,4 +51,25 @@ uint8_t BitStream::getBit(int pos) {
 
 BitStream::BitStream() {
     LOG(MAIN, "%s()", __FUNCTION__);
+}
+
+void BitStream::pushBits(std::string bits) {
+    for (char bit : bits) {
+        if (bit != '0') {
+            pushBit(1);
+        } else {
+            pushBit(0);
+        }
+
+    }
+}
+
+void BitStream::pushBits(uint32_t dword, size_t len) {
+    uint32_t shift_bit = 0x80000000;
+    if (len > 32) len = 32;
+    for (int i = 0; i < len; i++) {
+        uint8_t bit = static_cast<uint8_t>(((dword & shift_bit) != 0) ? 1 : 0);
+        pushBit(bit);
+        shift_bit = shift_bit >> 1;
+    }
 }

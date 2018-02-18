@@ -36,7 +36,11 @@ private:
 public:
     BitStream();
 
-    void bushBit(uint8_t bit);
+    void pushBit(uint8_t bit);
+
+    void pushBits(std::string bits);
+
+    void pushBits(uint32_t dword, size_t len = 32);
 
     uint8_t getBit(int pos);
 

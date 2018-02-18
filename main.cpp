@@ -17,16 +17,12 @@ int main() {
     //avi_to_h264(avi_file);
     //ExpCodeGen();
     BitStream bitStream;
-    bitStream.bushBit(1);
-    bitStream.bushBit(0);
-    bitStream.bushBit(1);
-    bitStream.bushBit(1);
-    bitStream.bushBit(0);
-    bitStream.bushBit(1);
-    bitStream.bushBit(0);
-    bitStream.bushBit(1);
-    bitStream.bushBit(1);
-    bitStream.bushBit(0);
+    //bitStream.pushBits("1001001010101010010010100100101001");
+    code_info code = getExpCodeInfo(5);
+    bitStream.pushBits(code.value, code.len);
+    code = getExpCodeInfo(20);
+    bitStream.pushBits(code.value, code.len);
+    //LOG(INFO, "ExpCode[5]=%s", getExpCodeString(5).c_str());
     LOG(INFO, "%s", bitStream.toString().c_str());
 
     return 0;
