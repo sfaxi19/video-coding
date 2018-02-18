@@ -42,6 +42,8 @@ void ExpCodeGen() {
     printf("}\n");
 }
 
+uint32_t ExpCode[511];
+
 void ExpCodeInit() {
     ExpCode[255 + (0)] = 0b1 << 31;
     ExpCode[255 + (1)] = 0b010 << 29;

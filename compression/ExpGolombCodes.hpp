@@ -6,7 +6,7 @@
 
 static bool init = false;
 
-static uint32_t ExpCode[511];
+extern uint32_t ExpCode[511];
 
 void ExpCodeInit();
 

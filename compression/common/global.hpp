@@ -22,12 +22,20 @@
 #define TIMER 3
 #define MAIN  4
 
-static FILE *pLogFile = fopen("log.txt", "a+");
+//extern FILE *pLogFile;
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
+static FILE *pLogFile = nullptr;
+
+#ifndef NDEBUG
 #define LOG(msg, ...) { \
-    if (pLogFile == nullptr) pLogFile = fopen("log.txt", "a+");\
+    if (pLogFile == nullptr) { \
+        std::string filename = "log/"; \
+        system(("mkdir -p " + filename).c_str()); \
+        filename.append(__FILENAME__); \
+        pLogFile = fopen(filename.substr(0, filename.size() - 4).append(".log").c_str(), "a+"); \
+    } \
     std::chrono::system_clock::time_point PPPPP_TIMESTAMP = std::chrono::system_clock::now(); \
     std::time_t PPP_TIME = std::chrono::system_clock::to_time_t(PPPPP_TIMESTAMP); \
     std::string PPPPP_TIMETIME = std::ctime(&PPP_TIME); \
@@ -63,6 +71,10 @@ static FILE *pLogFile = fopen("log.txt", "a+");
     if (pLogFile) fprintf(pLogFile, "\n"); \
     if (msg == ERROR) { exit(1); } \
 }
+
+#else
+#define LOG(msg, ...) {}
+#endif
 
 typedef std::map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> timers_map_t;
 static timers_map_t timers_map;

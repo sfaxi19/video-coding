@@ -1,9 +1,6 @@
-//
-// Created by sfaxi19 on 17.02.18.
-//
+#ifndef DCT_HPP
+#define DCT_HPP
 
-#ifndef VIDEO_COMPRESSION_DCT_HPP
-#define VIDEO_COMPRESSION_DCT_HPP
 #include "cmath"
 
 enum class MultipMode : int {
@@ -18,4 +15,8 @@ void idct(double **block);
 
 int dct(double **block);
 
-#endif //VIDEO_COMPRESSION_DCT_HPP
+void idct_dc(double **block);
+
+int dct_dc(double **block);
+
+#endif //DCT_HPP
