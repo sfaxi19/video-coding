@@ -1,24 +1,27 @@
 cmake_minimum_required(VERSION 3.8)
-project(video-compression)
+project(video-coding)
 
 set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCE_FILES main.cpp
-        compression/Coder.cpp
-        compression/Coder.hpp
-        compression/CabacFsm.cpp
-        compression/CabacFsm.hpp
-        compression/ExpGolombCodes.hpp
-        compression/ExpGolombCodes.cpp
-        compression/common/global.hpp
-        compression/Scanning.cpp
-        compression/Scanning.hpp
-        compression/DCT.hpp
-        compression/DCT.cpp
-        compression/Quantization.cpp compression/Quantization.hpp compression/BitStream.cpp compression/BitStream.hpp)
+        src/coding/Coder.cpp
+        src/coding/Coder.hpp
+        src/coding/CabacFsm.cpp
+        src/coding/CabacFsm.hpp
+        src/coding/ExpGolombCodes.hpp
+        src/coding/ExpGolombCodes.cpp
+        src/common/global.hpp
+        src/coding/Scanning.cpp
+        src/coding/Scanning.hpp
+        src/coding/DCT.hpp
+        src/coding/DCT.cpp
+        src/coding/Quantization.cpp
+        src/coding/Quantization.hpp
+        src/coding/BitStream.cpp
+        src/coding/BitStream.hpp)
 
-add_executable(video-compression ${SOURCE_FILES})
+add_executable(video-coding ${SOURCE_FILES})
 
 include_directories(avi-maker/src)
 add_subdirectory(avi-maker/)
-target_link_libraries(video-compression  avi-maker-lib)
+target_link_libraries(video-coding  avi-maker-lib)
