@@ -4,11 +4,11 @@
 #include <sys/time.h>
 #include <chrono>
 #include "AVIMaker/AVIMaker.h"
-#include "compression/Coder.hpp"
-#include "compression/ExpGolombCodes.hpp"
-#include "compression/CabacFsm.hpp"
-#include "compression/common/global.hpp"
-#include "compression/BitStream.hpp"
+#include "coding/Coder.hpp"
+#include "coding/ExpGolombCodes.hpp"
+#include "coding/CabacFsm.hpp"
+#include "coding/BitStream.hpp"
+#include "common/global.hpp"
 
 int main() {
     //system("rm log.txt");

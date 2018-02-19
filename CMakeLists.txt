@@ -3,7 +3,7 @@ project(video-coding)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp
+set(SOURCE_FILES src/main.cpp
         src/coding/Coder.cpp
         src/coding/Coder.hpp
         src/coding/CabacFsm.cpp
@@ -23,5 +23,7 @@ set(SOURCE_FILES main.cpp
 add_executable(video-coding ${SOURCE_FILES})
 
 include_directories(avi-maker/src)
+include_directories(src)
+
 add_subdirectory(avi-maker/)
 target_link_libraries(video-coding  avi-maker-lib)
