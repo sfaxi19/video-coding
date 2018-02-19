@@ -1,2 +1,2 @@
-# video-compression
-Simple video compression .
+# video-coding
+Simple video coding.
