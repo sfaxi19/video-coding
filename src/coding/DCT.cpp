@@ -1,3 +1,4 @@
+#include <Blocks.hpp>
 #include "DCT.hpp"
 
 const double a = (double) 1 / 2;
@@ -17,7 +18,12 @@ double C[4][4] = {
         {2, 1,  -1, -2},
         {1, -1, -1, 1},
         {1, -2, 2,  -1}};
-
+double C_DC[4][4] = {
+        {1, 1,  1,  1},
+        {1, 1,  -1, -1},
+        {1, -1, -1, 1},
+        {1, -1, 1,  -1}
+};
 double CT[4][4] = {
         {1, 2,  1,  1},
         {1, 1,  -1, -2},
@@ -43,6 +49,11 @@ double Ei[4][4] = {
         {a * b, b2,    a * b, b2}
 };
 
+
+const Block4x4_float mrxC(C);
+const Block4x4_float mrxCT(CT);
+const Block4x4_float mrxE(E);
+
 void multiple(double **block, double matrix[][4], double **out, MultipMode mode) {
     double mrx[4][4];
     if (mode != MultipMode::SIMPLE) {
@@ -59,7 +70,7 @@ void multiple(double **block, double matrix[][4], double **out, MultipMode mode)
     }
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (mode != MultipMode::SIMPLE)out[i][j] = mrx[i][j];
+            if (mode != MultipMode::SIMPLE) out[i][j] = mrx[i][j];
             else out[i][j] = block[i][j] * matrix[i][j];
         }
     }
@@ -77,4 +88,27 @@ int dct(double **block) {
     multiple(block, CT, block, MultipMode::NORM);
     multiple(block, E, block, MultipMode::SIMPLE);
     return (int) block[0][0];
+}
+
+int dct_dc(double **block) {
+    multiple(block, C_DC, block, MultipMode::REVERSE);
+    multiple(block, C_DC, block, MultipMode::NORM);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            block[i][j] = block[i][j] / 2;
+        }
+    }//multiple(block, E, block, MultipMode::SIMPLE);
+    return (int) block[0][0];
+}
+
+void dct(Block4x4_float &block) {
+    block.multiple(mrxC, MultipMode::REVERSE);
+    block.multiple(mrxCT, MultipMode::NORM);
+    block.multiple(mrxE, MultipMode::SIMPLE);
+}
+
+Block4x4_float idct(Block4x4_float &block) {
+    block.multiple(mrxE, MultipMode::REVERSE);
+    block.multiple(mrxCT, MultipMode::NORM);
+    block.multiple(mrxC, MultipMode::SIMPLE);
 }

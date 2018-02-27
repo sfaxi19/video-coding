@@ -1,19 +1,22 @@
 #ifndef DCT_HPP
 #define DCT_HPP
 
+#include <Blocks.hpp>
 #include "cmath"
 
-enum class MultipMode : int {
-    NORM    = 0,
-    REVERSE = 1,
-    SIMPLE  = 2
-};
+class IBlock4x4;
+class Block4x4_float;
+class Block4x4Layout;
 
-void multiple(double **block, double matrix[][4], double **out, MultipMode mode);
+//void multiple(double **block, double matrix[][4], double **out, MultipMode mode);
 
 void idct(double **block);
 
 int dct(double **block);
+
+void dct(IBlock4x4& block);
+
+void dct(Block4x4_float &block);
 
 void idct_dc(double **block);
 

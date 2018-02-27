@@ -45,6 +45,10 @@ private:
     void writeBits(uint32_t value, uint32_t bits);
 
 public:
+    void setStateIdx(uint16_t m_stateIdx);
+
+    void setMPS(uint8_t m_valMPS);
+
     std::string getEncode() { return m_enc; }
 
     std::string getDecode() { return m_dec; }

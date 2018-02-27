@@ -18,7 +18,7 @@ set(SOURCE_FILES src/main.cpp
         src/coding/Quantization.cpp
         src/coding/Quantization.hpp
         src/coding/BitStream.cpp
-        src/coding/BitStream.hpp)
+        src/coding/BitStream.hpp src/Blocks.hpp src/Blocks.cpp)
 
 add_executable(video-coding ${SOURCE_FILES})
 

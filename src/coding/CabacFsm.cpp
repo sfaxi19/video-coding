@@ -237,3 +237,11 @@ void CabacFsm::writeBits(uint32_t value, uint32_t bits) {
 CabacFsm::CabacFsm(uint8_t valMPS, uint16_t stateIdx) : m_valMPS(valMPS), m_stateIdx(stateIdx) {
     LOG(INFO, "CabacFsm init with valMPS=%d, stateIdx=%d", valMPS, stateIdx);
 }
+
+void CabacFsm::setStateIdx(uint16_t m_stateIdx) {
+    CabacFsm::m_stateIdx = m_stateIdx;
+}
+
+void CabacFsm::setMPS(uint8_t m_valMPS) {
+    CabacFsm::m_valMPS = m_valMPS;
+}
