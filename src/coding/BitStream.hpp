@@ -6,23 +6,16 @@
 #define VIDEO_COMPRESSION_BITSTREAM_HPP
 
 #include "iostream"
+#include "Binarization.hpp"
 #include <vector>
 
-const uint8_t shifts[8] = {
-        0b10000000,
-        0b01000000,
-        0b00100000,
-        0b00010000,
-        0b00001000,
-        0b00000100,
-        0b00000010,
-        0b00000001
-};
+struct code_info;
 
 class BitStream {
 private:
     std::vector<uint8_t> m_bitStream;
     int m_bit_pos = -1;
+    int m_read_bit_pos = 0;
     int m_byte_pos = -1;
     size_t m_bit_length = 0;
     size_t m_byte_length = 0;
@@ -36,11 +29,17 @@ private:
 public:
     BitStream();
 
-    void pushBit(uint8_t bit);
+    void    pushBit(uint8_t bit);
 
-    void pushBits(std::string bits);
+    void    pushBits(std::string &bits);
 
-    void pushBits(uint32_t dword, size_t len = 32);
+    void    pushBits(uint32_t dword, size_t len = 32);
+
+    void    pushBits(code_info code);
+
+    uint8_t readNext();
+
+    void    readReset();
 
     uint8_t getBit(int pos);
 

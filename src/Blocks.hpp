@@ -19,6 +19,8 @@ enum class MultipMode : int {
     SIMPLE = 2
 };
 
+void print_block(const char *title, double **block);
+
 class IBlock4x4 {
 
 protected:
@@ -63,7 +65,7 @@ public:
         m_component = component;
     }
 
-    void setValue(uint8_t value, uint16_t x, uint16_t y)  {
+    void setValue(uint8_t value, uint16_t x, uint16_t y) {
         //if ((x < 4) && (y < 4)) {
         setComponent(m_frame, m_y + y, m_x + x, value, m_component);
         //}
@@ -79,13 +81,55 @@ public:
     }
 };
 
+struct macroblock_result {
+    macroblock_result() {
+        dc_block = new double *[4];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                block[i][j] = new double *[4];
+                for (int b = 0; b < 4; b++) {
+                    block[i][j][b] = new double[4];
+                }
+            }
+            dc_block[i] = new double[4];
+        }
+    }
+
+    virtual ~macroblock_result() {
+        LOG(WARN, "Macroblock_result destructor!");
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                for (int b = 0; b < 4; b++) {
+                    delete[] block[i][j][b];
+                }
+                delete[] block[i][j];
+            }
+            delete[] dc_block[i];
+        }
+        delete[] dc_block;
+    }
+
+    void print() {
+        printf("DC Level: %d\n", dc_level);
+        print_block("DC_BLOCK:", dc_block);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                print_block("BLOCK:", block[i][j]);
+            }
+        }
+    }
+
+    double **block[4][4]{};
+    double **dc_block;
+    int dc_level = 0;
+};
 
 class Block4x4_float {
 private:
     double m_block[4][4];
 public:
 
-    Block4x4_float(){}
+    Block4x4_float() {}
 
     Block4x4_float(const Block4x4_float &block) {
         //LOG(MAIN, "%s. Констуктор копирования1", __FUNCTION__);
@@ -105,7 +149,7 @@ public:
         }
     }
 
-    Block4x4_float(double block[4][4]){
+    Block4x4_float(double block[4][4]) {
         for (uint16_t i = 0; i < 4; i++) {
             for (uint16_t j = 0; j < 4; j++) {
                 m_block[i][j] = block[i][j];
@@ -115,7 +159,7 @@ public:
 
     inline void setValue(double value, uint16_t x, uint16_t y) {
         //if ((x < 4) && (y < 4)) {
-            m_block[y][x] = value;
+        m_block[y][x] = value;
         //}
     }
 
@@ -125,12 +169,10 @@ public:
         return m_block[y][x];
     }
 
-    Block4x4_float multiple(const Block4x4_float& matrix, MultipMode mode);
+    Block4x4_float multiple(const Block4x4_float &matrix, MultipMode mode);
 
     std::string toString(const std::string &title = "");
 };
-
-
 
 
 #endif //BLOCKS_HPP

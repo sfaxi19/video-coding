@@ -8,8 +8,8 @@ set(SOURCE_FILES src/main.cpp
         src/coding/Coder.hpp
         src/coding/CabacFsm.cpp
         src/coding/CabacFsm.hpp
-        src/coding/ExpGolombCodes.hpp
-        src/coding/ExpGolombCodes.cpp
+        src/coding/Binarization.hpp
+        src/coding/Binarization.cpp
         src/common/global.hpp
         src/coding/Scanning.cpp
         src/coding/Scanning.hpp

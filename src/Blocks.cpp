@@ -62,3 +62,16 @@ std::string Block4x4_float::toString(const std::string &title) {
     }
     return str;
 }
+
+
+
+void print_block(const char *title, double **block) {
+    printf("%s\n", title);
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            printf("%8.2f", block[i][j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}

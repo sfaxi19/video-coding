@@ -27,7 +27,7 @@
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
 static FILE *pLogFile = nullptr;
-
+//#define NDEBUG 1
 #ifndef NDEBUG
 #define LOG(msg, ...) { \
     if (pLogFile == nullptr) { \

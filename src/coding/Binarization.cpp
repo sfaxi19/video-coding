@@ -1,6 +1,6 @@
 #include <cmath>
 #include <bitset>
-#include "ExpGolombCodes.hpp"
+#include "Binarization.hpp"
 
 void ExpCodeGen() {
     int M = 0;
@@ -45,7 +45,6 @@ void ExpCodeGen() {
     }
     printf("}\n");
 }
-
 
 code_info ExpCode[511];
 
@@ -589,5 +588,45 @@ std::string getExpCodeString(int value) {
         shift_bit = shift_bit >> 1;
     }
     return str;
+}
+
+uint8_t searchLeftBit(uint32_t value) {
+    uint32_t shiftBit = 0x80000000;
+    for (uint8_t i = 0; i < 32; i++) {
+        if ((value & shiftBit) != 0) return (32 - i);
+        shiftBit = shiftBit >> 1;
+    }
+    return 0;
+}
+
+code_info getDCCodeInfo(int value) {
+    LOG(MAIN, "%s(value=%d)", __FUNCTION__, value);
+    uint8_t len = searchLeftBit(static_cast<uint32_t>(abs(value)));
+    uint32_t code = 0;
+    uint32_t shiftBit = 0x80000000;
+    for (uint8_t i = 0; i < len; i++) {
+        code = code | shiftBit;
+        shiftBit = shiftBit >> 1;
+    }
+    uint32_t halfmax = static_cast<uint32_t >(pow(2, len));
+    uint32_t halfmax_prev = static_cast<uint32_t >(pow(2, len - 1));
+    uint32_t suffix = (value < 0) ? (halfmax + value - 1) : value;//(~(halfmax - value - 1)) & (halfmax - 1);
+    code |= suffix << (31 - len * 2);
+    LOG(INFO, "code=%u, len=%d", code, len * 2 + 1)
+    return code_info(code, len * 2 + 1);
+}
+
+
+int getDCDecode(BitStream &bitStream) {
+    uint8_t len = 0;
+    while (bitStream.readNext() == 1) { len++; }
+    uint32_t value = 0;
+    for (uint8_t i = 0; i < len; i++) {
+        value |= bitStream.readNext() << (len - i - 1);
+    }
+    int halfmax = static_cast<uint32_t >(pow(2, len));
+    int halfmax_prev = static_cast<uint32_t >(pow(2, len - 1));
+    int suffix = (value < halfmax_prev) ? -(halfmax - value - 1) : value;//(-1) * ~(value - 1);
+    return suffix;
 }
 

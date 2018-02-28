@@ -1,27 +1,45 @@
 #include <iostream>
 #include <cmath>
-#include <bitset>
+
 #include <sys/time.h>
 #include <chrono>
 #include <bmp_lib/bmp.h>
 #include "AVIMaker/AVIMaker.h"
 #include "coding/Coder.hpp"
-#include "coding/ExpGolombCodes.hpp"
+#include "coding/Binarization.hpp"
 #include "coding/CabacFsm.hpp"
 #include "coding/BitStream.hpp"
 #include "common/global.hpp"
 #include "Blocks.hpp"
 
 int main() {
+//    int err = 0;
+//    int x = 5;
+//    BitStream bs;
+//    bs.pushBits(getDCCodeInfo(1118));
+//    bs.pushBits(getDCCodeInfo(-4));
+//    bs.pushBits(getDCCodeInfo(4));
+//    bs.pushBits(getDCCodeInfo(5));
+//    bs.pushBits(getDCCodeInfo(1024));
+//    bs.pushBits(getDCCodeInfo(3));
+//    printf("%s\n", bs.toString().c_str());
+//    printf("Decoding: %5d\n", getDCDecode(bs));
+//    printf("Decoding: %5d\n", getDCDecode(bs));
+//    printf("Decoding: %5d\n", getDCDecode(bs));
+//    printf("Decoding: %5d\n", getDCDecode(bs));
+//    printf("Decoding: %5d\n", getDCDecode(bs));
+//    printf("Decoding: %5d\n", getDCDecode(bs));
+//    return 0;
     //system("rm log.txt");
     AVIMaker avi_file("../avi-maker/resources/lr1_3.avi");
-    print_bitmap_info(avi_file.video()->bmInfo());
-    print_avi_header(avi_file.aviHeader);
-    StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
-    print_stream_header(streamHeader);
-    avi_to_h264(avi_file);
-    avi_file.saveVideoStreamToBMP("cm_files/");
 
+    StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
+    avi_to_h264(avi_file);
+    //avi_file.saveVideoStreamToBMP("cm_files/");
+
+    //print_avi_header(avi_file.aviHeader);
+    //print_stream_header(streamHeader);
+    //print_bitmap_info(avi_file.video()->bmInfo());
     //ExpCodeGen();
 
     //Block4x4Layout block4x4(avi_file.video()->getFrame(1), 100, 100);
