@@ -35,11 +35,11 @@ int main() {
 
     StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
     avi_to_h264(avi_file);
-    //avi_file.saveVideoStreamToBMP("cm_files/");
+    avi_file.saveVideoStreamToBMP("cm_files/");
 
     //print_avi_header(avi_file.aviHeader);
     //print_stream_header(streamHeader);
-    //print_bitmap_info(avi_file.video()->bmInfo());
+    print_bitmap_info(avi_file.video()->bmInfo());
     //ExpCodeGen();
 
     //Block4x4Layout block4x4(avi_file.video()->getFrame(1), 100, 100);

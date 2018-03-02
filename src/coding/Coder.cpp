@@ -147,12 +147,28 @@ double blockEntropy(const int freq[], int len, int N) {
 void BitStreamToMacroblockResult(macroblock_result &mb_res, BitStream &bitStream) {
     mb_res.dc_level = getDCDecode(bitStream);
     /*****************************
-     *      push DC4x4 block
+     *      get DC4x4 block
      ****************************/
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            //code = getExpCodeInfo(static_cast<int>(abs(mb_res.dc_block[i][j])));
-            //bitStream.pushBits(code);
+            if ((i == 0) && (j == 0)) continue;
+            mb_res.dc_block[i][j] = getExpDecode(bitStream);
+        }
+    }
+    mb_res.dc_block[0][0] = mb_res.dc_level;
+    /****************************
+     *   get residual4x4 blocks
+     ****************************/
+    for (int h = 0; h < 4; h++) {
+        for (int w = 0; w < 4; w++) {
+            double **block = mb_res.block[h][w];
+            for (int i = 0; i < 4; i++) {
+                for (int j = 0; j < 4; j++) {
+                    if ((i == 0) && (j == 0)) continue;
+                    block[i][j] = getExpDecode(bitStream);
+                    //bitStream.pushBits(getExpCodeInfo(static_cast<int>(abs(block[i][j]))));
+                }
+            }
         }
     }
 }
@@ -176,7 +192,8 @@ void MacroblockResultToBitStream(macroblock_result &mb_res, BitStream &bitStream
      ****************************/
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            code = getExpCodeInfo(static_cast<int>(abs(mb_res.dc_block[i][j])));
+            if ((i == 0) && (j == 0)) continue;
+            code = getExpCodeInfo(static_cast<int>(mb_res.dc_block[i][j]));
             bitStream.pushBits(code);
         }
     }
@@ -190,7 +207,8 @@ void MacroblockResultToBitStream(macroblock_result &mb_res, BitStream &bitStream
             double **block = mb_res.block[h][w];
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
-                    bitStream.pushBits(getExpCodeInfo(static_cast<int>(abs(block[i][j]))));
+                    if ((i == 0) && (j == 0)) continue;
+                    bitStream.pushBits(getExpCodeInfo(static_cast<int>(block[i][j])));
                 }
             }
         }
@@ -274,8 +292,22 @@ void frame_coding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, siz
             }
 
             MacroblockResultToBitStream(mb_res, bitStream);
-            dc_prev = dc;
+            macroblock_result dec_res;
+            bitStream.readReset();
+            BitStreamToMacroblockResult(dec_res, bitStream);
+            if (mb_res.dc_level != 0) {
+                printf("===========================================\n");
+                printf("                Coding:\n");
+                printf("===========================================\n");
+                mb_res.print();
+                printf("===========================================\n");
+                printf("                Decoding:\n");
+                printf("===========================================\n");
+                dec_res.print();
+            }
             return;
+            //return;
+            dc_prev = dc;
         }
     }
     //mc::block_info blockInfo1(100, 100, 4, 4);
@@ -292,6 +324,15 @@ void avi_to_h264(AVIMaker &aviMaker) {
     BitStream bitStream;
     frame_coding(nullptr, target, defWidth, defHeight, bitStream);
     LOG(INFO, "RESULT: %s", bitStream.toString().c_str());
+    size_t block_size = 16;
+    size_t blocks_in_width = defWidth / block_size;
+    size_t blocks_in_height = defHeight / block_size;
+    for (size_t i = 0; i < blocks_in_height; i++) {
+        for (size_t j = 0; j < blocks_in_width; j++) {
+            mc::block_info blockInfo(j * block_size, i * block_size, block_size, block_size);
+            mark_range(video->getFrame(8), blockInfo, COMPONENT_A);
+        }
+    }
     return;
     //TRIPLEYCbCr **out = new TRIPLEYCbCr *[video->height()];
     //for (int i = 0; i < video->height(); i++) {
@@ -302,13 +343,14 @@ void avi_to_h264(AVIMaker &aviMaker) {
     //print_block(frame2, posX + v.x, posY + v.y, 4, 4);
     //subtract_block(frame1, frame2, m_enc, block_info, v);
     //subtract_to_4x4_block(frame1, frame1, block, block_info, v);
-    size_t block_size = 16;
-    size_t blocks_in_width = defWidth / block_size;
-    size_t blocks_in_height = defHeight / block_size;
+    //size_t block_size = 16;
+    //size_t blocks_in_width = defWidth / block_size;
+    //size_t blocks_in_height = defHeight / block_size;
     for (size_t i = 0; i < blocks_in_height; i++) {
         for (size_t j = 0; j < blocks_in_width; j++) {
+            //        mark_range(video->getFrame(8), blockInfo, COMPONENT_A);
+
             mc::block_info blockInfo(j * block_size, i * block_size, block_size, block_size);
-            mark_range(video->getFrame(8), blockInfo, COMPONENT_A);
             mc::vect v = mc::logarithmicSearch(base, target, 20, 20, blockInfo);
             //mc::subtract_block(base, target, target, blockInfo, v);
         }

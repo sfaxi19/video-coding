@@ -3,11 +3,10 @@
 #include "iostream"
 
 #include "common/global.hpp"
-#include "BitStream.hpp"
 #include <bitset>
+#include "BitStream.hpp"
 
 class BitStream;
-
 static bool init = false;
 
 struct code_info {
@@ -47,6 +46,9 @@ inline code_info getExpCodeInfo(int value) {
     if (!init) ExpCodeInit();
     return ExpCode[(255 + value) % 511];
 }
+
+
+int getExpDecode(BitStream &bitStream);
 
 std::string getExpCodeString(int value);
 

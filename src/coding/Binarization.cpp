@@ -590,6 +590,23 @@ std::string getExpCodeString(int value) {
     return str;
 }
 
+int getExpDecode(BitStream &bitStream) {
+    //LOG(MAIN, "%s()", __FUNCTION__);
+    //LOG(INFO, "%s", bitStream.toString().c_str());
+    uint8_t len = 0;
+    while (bitStream.readNext() == 0) { len++; }
+    uint32_t value = 0;
+    for (uint8_t i = 0; i < len; i++) {
+        value |= bitStream.readNext() << (len - i - 1);
+    }
+    //LOG(INFO, "value=%d, len=%d", value, len);
+    if (value % 2 == 0) {
+        return static_cast<int>(pow(2, len - 1) + value / 2);
+    } else {
+        return static_cast<int>((-1) * (pow(2, len - 1) + (value - 1) / 2));
+    }
+}
+
 uint8_t searchLeftBit(uint32_t value) {
     uint32_t shiftBit = 0x80000000;
     for (uint8_t i = 0; i < 32; i++) {
