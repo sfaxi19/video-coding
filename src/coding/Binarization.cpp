@@ -1,6 +1,7 @@
 #include <cmath>
 #include <bitset>
 #include "Binarization.hpp"
+#include "BitStream/BitStream.hpp"
 
 void ExpCodeGen() {
     int M = 0;
@@ -629,7 +630,7 @@ code_info getDCCodeInfo(int value) {
     uint32_t halfmax_prev = static_cast<uint32_t >(pow(2, len - 1));
     uint32_t suffix = (value < 0) ? (halfmax + value - 1) : value;//(~(halfmax - value - 1)) & (halfmax - 1);
     code |= suffix << (31 - len * 2);
-    LOG(INFO, "code=%u, len=%d", code, len * 2 + 1)
+    LOG(MAIN, "code=%u, len=%d", code, len * 2 + 1)
     return code_info(code, len * 2 + 1);
 }
 

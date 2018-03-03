@@ -1,14 +1,7 @@
 //
 // Created by sfaxi19 on 20.02.18.
 //
-//
-// Created by sfaxi19 on 20.02.18.
-//
-
-#include <bmp_lib/bmp_headers.hpp>
 #include <bmp_lib/bmp.h>
-//#include <coding/DCT.hpp>
-#include "iostream"
 #include "Blocks.hpp"
 
 /*
@@ -22,6 +15,7 @@
             }
  */
 
+/*
 Block4x4_float block4x4_float;
 
 Block4x4_float Block4x4_float::multiple(const Block4x4_float &matrix, MultipMode mode) {
@@ -63,7 +57,7 @@ std::string Block4x4_float::toString(const std::string &title) {
     return str;
 }
 
-
+*/
 
 void print_block(const char *title, double **block) {
     printf("%s\n", title);

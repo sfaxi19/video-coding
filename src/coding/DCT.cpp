@@ -49,10 +49,11 @@ double Ei[4][4] = {
         {a * b, b2,    a * b, b2}
 };
 
-
+/*
 const Block4x4_float mrxC(C);
 const Block4x4_float mrxCT(CT);
 const Block4x4_float mrxE(E);
+*/
 
 void multiple(double **block, double matrix[][4], double **out, MultipMode mode) {
     double mrx[4][4];
@@ -101,6 +102,7 @@ int dct_dc(double **block) {
     return (int) block[0][0];
 }
 
+/*
 void dct(Block4x4_float &block) {
     block.multiple(mrxC, MultipMode::REVERSE);
     block.multiple(mrxCT, MultipMode::NORM);
@@ -112,3 +114,4 @@ Block4x4_float idct(Block4x4_float &block) {
     block.multiple(mrxCT, MultipMode::NORM);
     block.multiple(mrxC, MultipMode::SIMPLE);
 }
+*/

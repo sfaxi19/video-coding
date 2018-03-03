@@ -8,20 +8,76 @@
 #include <bmp_lib/bmp.h>
 #include <coding/DCT.hpp>
 #include <common/global.hpp>
+#include <motion_compensation/motion_compensation.h>
 #include "iostream"
-
-class Block4x4_float;
-
 
 enum class MultipMode : int {
     NORM = 0,
     REVERSE = 1,
     SIMPLE = 2
 };
+enum mbType : int {
+    I = 0,
+    P = 1
+};
 
 void print_block(const char *title, double **block);
 
-class IBlock4x4 {
+
+struct macroblock_info {
+
+    macroblock_info() {
+        dc_block = new double *[4];
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                block[i][j] = new double *[4];
+                for (int b = 0; b < 4; b++) {
+                    block[i][j][b] = new double[4];
+                }
+            }
+            dc_block[i] = new double[4];
+        }
+    }
+
+    virtual ~macroblock_info() {
+        //LOG(WARN, "Macroblock_info destructor!");
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                for (int b = 0; b < 4; b++) {
+                    delete[] block[i][j][b];
+                }
+                delete[] block[i][j];
+            }
+            delete[] dc_block[i];
+        }
+        delete[] dc_block;
+    }
+
+    void print() {
+        printf("DC Level: %d\n", dc_level);
+        print_block("DC_BLOCK:", dc_block);
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                print_block("BLOCK:", block[i][j]);
+            }
+        }
+    }
+
+    // 'block_pattern' consists of
+    // / 1 - if block non zeros
+    // \ 0 - otherwise
+    int block_pattern[4][4]{};
+    double **block[4][4]{};
+    double **dc_block;
+    int dc_level = 0;
+    uint8_t mb_type = 0;
+    mc::vect v{};
+};
+
+/*
+ *
+
+ class IBlock4x4 {
 
 protected:
 
@@ -32,15 +88,15 @@ protected:
 public:
     //IBlock4x4() {};
 
-    /*virtual void setValue(double, uint16_t x, uint16_t y) = 0;
+    //virtual void setValue(double, uint16_t x, uint16_t y) = 0;
 
-    virtual void setValue(uint8_t value, uint16_t x, uint16_t y) = 0;
+    //virtual void setValue(uint8_t value, uint16_t x, uint16_t y) = 0;
 
-    virtual double getValue(uint16_t x, uint16_t y) const = 0;*/
+    //virtual double getValue(uint16_t x, uint16_t y) const = 0;
 
-    //Block4x4_float multiple(IBlock4x4 &block, const IBlock4x4 &matrix, MultipMode mode);
+//Block4x4_float multiple(IBlock4x4 &block, const IBlock4x4 &matrix, MultipMode mode);
 
-    //std::string toString(const std::string &title = "");
+//std::string toString(const std::string &title = "");
 };
 
 class Block4x4Layout {
@@ -79,49 +135,6 @@ public:
         //if ((x >= 4) || (y >= 4)) return 0;
         return getComponent(m_frame, m_y + y, m_x + x, m_component);
     }
-};
-
-struct macroblock_result {
-    macroblock_result() {
-        dc_block = new double *[4];
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                block[i][j] = new double *[4];
-                for (int b = 0; b < 4; b++) {
-                    block[i][j][b] = new double[4];
-                }
-            }
-            dc_block[i] = new double[4];
-        }
-    }
-
-    virtual ~macroblock_result() {
-        LOG(WARN, "Macroblock_result destructor!");
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                for (int b = 0; b < 4; b++) {
-                    delete[] block[i][j][b];
-                }
-                delete[] block[i][j];
-            }
-            delete[] dc_block[i];
-        }
-        delete[] dc_block;
-    }
-
-    void print() {
-        printf("DC Level: %d\n", dc_level);
-        print_block("DC_BLOCK:", dc_block);
-        for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) {
-                print_block("BLOCK:", block[i][j]);
-            }
-        }
-    }
-
-    double **block[4][4]{};
-    double **dc_block;
-    int dc_level = 0;
 };
 
 class Block4x4_float {
@@ -173,6 +186,6 @@ public:
 
     std::string toString(const std::string &title = "");
 };
-
+*/
 
 #endif //BLOCKS_HPP

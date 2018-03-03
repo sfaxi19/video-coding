@@ -16,9 +16,14 @@ static const uint8_t shifts[8] = {
         0b00000001
 };
 
-std::string BitStream::toString() {
+std::string BitStream::toString(size_t max_length) {
+    if ((max_length == 0) || (max_length > m_bit_length)) max_length = m_bit_length;
     std::string binString = "[";
     for (int i = 0; i < m_bit_length; i++) {
+        if (i > max_length) {
+            binString.append("...");
+            break;
+        }
         binString.append(std::to_string(getBit(i)));
     }
     return binString.append("] \n(").append(std::to_string(m_bit_length) + " bits")
@@ -92,9 +97,14 @@ void BitStream::pushBits(code_info code) {
 }
 
 uint8_t BitStream::readNext() {
+    //LOG(INFO, "%s(m_read_pos=%d)", __FUNCTION__, m_read_bit_pos);
     return getBit(m_read_bit_pos++);
 }
 
 void BitStream::readReset() {
     m_read_bit_pos = 0;
+}
+
+bool BitStream::isEnd() {
+    return (m_read_bit_pos >= m_bit_length);
 }

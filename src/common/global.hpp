@@ -27,7 +27,6 @@
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
 static FILE *pLogFile = nullptr;
-//#define NDEBUG 1
 #ifndef NDEBUG
 #define LOG(msg, ...) { \
     if (pLogFile == nullptr) { \
@@ -73,7 +72,42 @@ static FILE *pLogFile = nullptr;
 }
 
 #else
-#define LOG(msg, ...) {}
+#define LOG(msg, ...) { \
+ if (msg != MAIN) { \
+    if (pLogFile == nullptr) { \
+        std::string filename = "log/"; \
+        system(("mkdir -p " + filename).c_str()); \
+        filename.append(__FILENAME__); \
+        pLogFile = fopen(filename.substr(0, filename.size() - 4).append(".log").c_str(), "a+"); \
+    } \
+    std::chrono::system_clock::time_point PPPPP_TIMESTAMP = std::chrono::system_clock::now(); \
+    std::time_t PPP_TIME = std::chrono::system_clock::to_time_t(PPPPP_TIMESTAMP); \
+    std::string PPPPP_TIMETIME = std::ctime(&PPP_TIME); \
+    PPPPP_TIMETIME = PPPPP_TIMETIME.substr(4, PPPPP_TIMETIME.length() - 10); \
+    switch (msg) { \
+        case ERROR:\
+            printf(ANSI_COLOR_RED                   "ERROR:  \t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            if (pLogFile) fprintf(pLogFile,         "ERROR:  \t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            break; \
+        case WARN: \
+            printf(ANSI_COLOR_YELLOW                "WARNING:\t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            if (pLogFile) fprintf(pLogFile,         "WARNING:\t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            break; \
+        case INFO: \
+            printf(                                 "INFO:   \t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            if (pLogFile) fprintf(pLogFile,         "INFO:   \t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            break; \
+        case TIMER:\
+            printf(ANSI_COLOR_MAGENTA               "TIMER:  \t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            if (pLogFile) fprintf(pLogFile,         "TIMER:  \t%s\t%20s[%4d]:\t\t", PPPPP_TIMETIME.c_str(), __FILENAME__, __LINE__);\
+            break; \
+        } \
+        printf(__VA_ARGS__); \
+        if (pLogFile) fprintf(pLogFile, __VA_ARGS__); \
+        printf(ANSI_COLOR_RESET "\n"); \
+        if (pLogFile) fprintf(pLogFile, "\n"); \
+    } \
+ }
 #endif
 
 typedef std::map<uint32_t, std::chrono::time_point<std::chrono::steady_clock>> timers_map_t;

@@ -4,7 +4,7 @@
 
 #include "common/global.hpp"
 #include <bitset>
-#include "BitStream.hpp"
+//#include "coding/BitStream/BitStream.hpp"
 
 class BitStream;
 static bool init = false;

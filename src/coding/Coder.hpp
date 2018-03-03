@@ -6,9 +6,10 @@
 #define AVI_MAKER_H264_HPP
 
 class AVIMaker;
+class BitStream;
 
-void avi_to_h264(AVIMaker &aviMaker);
+void coding(AVIMaker &aviMaker, BitStream& bitStream);
 
-void h264_to_avi(uint8_t *bytes, uint64_t &len, AVIMaker &aviMaker);
+void decoding(AVIMaker &aviMaker, BitStream& bitStream);
 
 #endif //AVI_MAKER_H264_HPP

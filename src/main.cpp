@@ -8,7 +8,7 @@
 #include "coding/Coder.hpp"
 #include "coding/Binarization.hpp"
 #include "coding/CabacFsm.hpp"
-#include "coding/BitStream.hpp"
+#include "coding/BitStream/BitStream.hpp"
 #include "common/global.hpp"
 #include "Blocks.hpp"
 
@@ -32,14 +32,23 @@ int main() {
 //    return 0;
     //system("rm log.txt");
     AVIMaker avi_file("../avi-maker/resources/lr1_3.avi");
-
     StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
-    avi_to_h264(avi_file);
+    BitStream outBitStream;
+    LOG(INFO, "Coding process...");
+    coding(avi_file, outBitStream);
+
+
+    AVIMaker avi_dec("../avi-maker/resources/lr1_3.avi");
+    avi_dec.video()->releaseAllFrames();
+    LOG(INFO, "Decoding process...");
+    decoding(avi_file, outBitStream);
+
+
     avi_file.saveVideoStreamToBMP("cm_files/");
 
     //print_avi_header(avi_file.aviHeader);
     //print_stream_header(streamHeader);
-    print_bitmap_info(avi_file.video()->bmInfo());
+    //print_bitmap_info(avi_file.video()->bmInfo());
     //ExpCodeGen();
 
     //Block4x4Layout block4x4(avi_file.video()->getFrame(1), 100, 100);
@@ -72,7 +81,7 @@ int main() {
     LOG(INFO, "Enc: %s", enc.c_str());
     LOG(INFO, "Dec: %s", cabac_dec.getDecode().c_str());
     LOG(INFO, "Inp: %s", data.c_str());
-    //LOG(INFO, "ExpCode[5]=%s", getExpCodeString(5).c_str());
+    LOG(INFO, "ExpCode[5]=%s", getExpCodeString(5).c_str());
     LOG(INFO, "%s", bitStream.toString().c_str());
 */
     return 0;

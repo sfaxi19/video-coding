@@ -3,6 +3,7 @@
 //
 #include <AVIMaker/AVIMaker.h>
 #include <Blocks.hpp>
+#include <coding/BitStream/BitStreamIO.hpp>
 #include "Coder.hpp"
 #include "bmp_lib/bmp.h"
 #include "motion_compensation/motion_compensation.h"
@@ -44,7 +45,6 @@ void print_block(double block[][4]) {
     printf("\n");
 }
 
-
 void print_block2x2(const char *title, double **block) {
     printf("%s\n", title);
     for (int i = 0; i < 2; i++) {
@@ -76,20 +76,30 @@ void print_block(TRIPLEYCbCr **frame, int x, int y, int h, int w) {
     printf("\n");
 }
 
-
 void print_block(TRIPLEYCbCr **frame, mc::block_info bi) {
     print_block(frame, (int) bi.x, (int) bi.y, (int) bi.height, (int) bi.width);
 }
 
-void block_from_frame(double **block, TRIPLEYCbCr **frame, mc::block_info block_info) {
+void block_from_frame(double **block, TRIPLEYCbCr **frame, mc::block_info block_info, int component) {
     for (int i = 0; i < 4; i++) {
         block[i] = new double[4];
         for (int j = 0; j < 4; j++) {
-            block[i][j] = frame[block_info.y + i][block_info.x + j].Y;
+            block[i][j] = getComponent((TRIPLEBYTES **) frame, block_info.y + i, block_info.x + j, component);
+            //frame[block_info.y + i][block_info.x + j].Y;
         }
     }
 }
 
+void block4x4_from_16x16(double **block, int block16x16[16][16], size_t hIdx, size_t wIdx) {
+    for (size_t i = 0; i < 4; i++) {
+        block[i] = new double[4];
+        for (size_t j = 0; j < 4; j++) {
+            block[i][j] = block16x16[hIdx + i][wIdx + j];
+        }
+    }
+}
+
+/*
 void
 subtract_to_16x16_block(TRIPLEYCbCr **base, TRIPLEYCbCr **target, double **block, mc::block_info block_info,
                         mc::vect v) {
@@ -119,7 +129,7 @@ addition_to_4x4_block(TRIPLEYCbCr **base, double **block, mc::block_info block_i
         }
     }
 }
-
+*/
 uint8_t getBit(char ch) {
     return static_cast<uint8_t>((ch == '1') ? 1 : 0);
 }
@@ -144,187 +154,234 @@ double blockEntropy(const int freq[], int len, int N) {
     return sum * (-1);
 }
 
-void BitStreamToMacroblockResult(macroblock_result &mb_res, BitStream &bitStream) {
-    mb_res.dc_level = getDCDecode(bitStream);
-    /*****************************
-     *      get DC4x4 block
-     ****************************/
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            if ((i == 0) && (j == 0)) continue;
-            mb_res.dc_block[i][j] = getExpDecode(bitStream);
-        }
-    }
-    mb_res.dc_block[0][0] = mb_res.dc_level;
-    /****************************
-     *   get residual4x4 blocks
-     ****************************/
-    for (int h = 0; h < 4; h++) {
-        for (int w = 0; w < 4; w++) {
-            double **block = mb_res.block[h][w];
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    if ((i == 0) && (j == 0)) continue;
-                    block[i][j] = getExpDecode(bitStream);
-                    //bitStream.pushBits(getExpCodeInfo(static_cast<int>(abs(block[i][j]))));
-                }
-            }
-        }
-    }
-}
-
-/******************************************************************************
- * +----------+-------+-----------------------+
- * | dc_code  |  EG0  |          EG0          |
- * +----------+-------+-----------------------+
- * | DC diff  | DC4x4 | 4x4 | 4x4 | 4x4 | 4x4 |
- * +----------+-------+-----+-----+-----+-----+
- * ***************************************************************************/
-void MacroblockResultToBitStream(macroblock_result &mb_res, BitStream &bitStream) {
-    //mb_res.print();
-    /*****************************
-     *      push diff DC level
-     ****************************/
-    code_info code = getDCCodeInfo(mb_res.dc_level);
-    bitStream.pushBits(code);
-    /*****************************
-     *      push DC4x4 block
-     ****************************/
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            if ((i == 0) && (j == 0)) continue;
-            code = getExpCodeInfo(static_cast<int>(mb_res.dc_block[i][j]));
-            bitStream.pushBits(code);
-        }
-    }
-
-    LOG(INFO, "------------------------");
-    /*****************************
-     *   push residual4x4 blocks
-     ****************************/
-    for (int h = 0; h < 4; h++) {
-        for (int w = 0; w < 4; w++) {
-            double **block = mb_res.block[h][w];
-            for (int i = 0; i < 4; i++) {
-                for (int j = 0; j < 4; j++) {
-                    if ((i == 0) && (j == 0)) continue;
-                    bitStream.pushBits(getExpCodeInfo(static_cast<int>(block[i][j])));
-                }
-            }
-        }
-    }
-}
-
-int macroblock_coding(TRIPLEYCbCr **frame, mc::block_info &block16x16info, macroblock_result &mb_res) {
-    LOG(MAIN, "%s(frame=%p, x=%lu, y=%lu, w=%lu h=%lu)", __FUNCTION__, frame,
+void macroblock_decoding(TRIPLEYCbCr **base, mc::block_info &block16x16info, macroblock_info &mb_res) {
+    LOG(MAIN, "%s(base=%p, x=%lu, y=%lu, w=%lu h=%lu)", __FUNCTION__, base,
         block16x16info.x, block16x16info.y,
         block16x16info.width, block16x16info.height);
-    int QS = 9;
+    int QS = 10;
     size_t block_size = 4;
     size_t blocks_in_width = block16x16info.width / block_size;
     size_t blocks_in_height = block16x16info.height / block_size;
-    /*double **block = new double *[block_size];
-    double **dc_block = new double *[block_size];
-    for (int i = 0; i < block_size; i++) {
-        block[i] = new double[4];
-        dc_block[i] = new double[4];
-    }*/
-    double **dc_block = mb_res.dc_block;
+
+    double **pToDC_block = mb_res.dc_block;
+
+    pToDC_block[0][0] = mb_res.dc_level;
+    /****************************************************
+    *                  IDCT DC block
+    ****************************************************/
+    idct(pToDC_block);
+    /****************************************************
+     *              IQuantization DC block
+     ****************************************************/
+    iquant_block(pToDC_block, QS);
+
     for (size_t i = 0; i < blocks_in_height; i++) {
         for (size_t j = 0; j < blocks_in_width; j++) {
-            double **block = mb_res.block[i][j];
+            double **pToBlock = mb_res.block[i][j];
             mc::block_info block4x4info(block16x16info.x + j * block_size, block16x16info.y + i * block_size, 4, 4);
-            block_from_frame(block, frame, block4x4info);
-            //print_block("Block:", block);
+            //block_from_frame(pToBlock, frame, block4x4info, COMPONENT_Y);
+            pToBlock[0][0] = pToDC_block[i][j];
             /****************************************************
-             *                       DCT
+             *                  IDCT residual 4x4
              ****************************************************/
-            dc_block[i][j] = dct(block);
-            //print_block("DCT:", block);
+            idct(pToBlock);
             /****************************************************
-             *                   Quantization
+             *              IQuantization residual 4x4
              ****************************************************/
-            quant_block(block, QS);
-            //print_block("QUANT:", block);
+            iquant_block(pToBlock, QS);
+
+            //print_block(target, blockInfo1);
+            //print_block("Result:", block);
         }
     }
-    //print_block("DC_BLOCK:", dc_block);
-    int dc = dct(dc_block);
-
-    quant_block(dc_block, QS);
-
-    //print_block("DC_QUANT:", dc_block);
+}
 
 /*
-    iquant_block(dc_block, QS);
-    print_block("DC_IQUANT:", dc_block);
+ * 1) dc_level
+ * 2) dc4x4
+ * 3) block4x4(i) i = 1..16
+ */
+void addition_to_frame(TRIPLEYCbCr **frame, macroblock_info &mb_res, mc::block_info block16x16info) {
 
-    idct(dc_block);
-    print_block("DC_BLOCK:", dc_block);
-*/
+}
+
+void subtract_to_16x16block(TRIPLEYCbCr **base, TRIPLEYCbCr **target, int tmpBlock[16][16], mc::block_info block,
+                            mc::vect v, int component) {
+    for (int i = 0; i < block.height; i++) {
+        for (int j = 0; j < block.width; j++) {
+            tmpBlock[block.y + i][block.x + j] = clip(
+                    getComponent((TRIPLEBYTES **) target, block.y + i, block.x + j, component)
+                    - getComponent((TRIPLEBYTES **) base, block.y + v.y + i, block.x + v.x + j, component),
+                    0,
+                    255);
+        }
+    }
+}
+
+int
+macroblock_coding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, mc::block_info &block16x16info, int frame_type,
+                  macroblock_info &mb_res) {
+    LOG(MAIN, "%s(target=%p, x=%lu, y=%lu, w=%lu h=%lu)", __FUNCTION__, target,
+        block16x16info.x, block16x16info.y,
+        block16x16info.width, block16x16info.height);
+    int QS = 10;
+    size_t block_size = 4;
+    size_t blocks_in_width = block16x16info.width / block_size;
+    size_t blocks_in_height = block16x16info.height / block_size;
+    int tmp16x16block[16][16] = {0};
+    if ((base) && (frame_type == P)) {
+        mc::vect v = mc::logarithmicSearch(base, target, 20, 20, block16x16info);
+        subtract_to_16x16block(base, target, tmp16x16block, block16x16info, v, COMPONENT_Y);
+        mb_res.mb_type = P;
+        mb_res.v = v;
+    } else {
+        mb_res.mb_type = I;
+    }
+
+    double **pToDC_block = mb_res.dc_block;
+
+    for (size_t i = 0; i < blocks_in_height; i++) {
+        for (size_t j = 0; j < blocks_in_width; j++) {
+            double **pToBlock = mb_res.block[i][j];
+            if (mb_res.mb_type == I) {
+                mc::block_info block4x4info(block16x16info.x + j * block_size, block16x16info.y + i * block_size, 4, 4);
+                block_from_frame(pToBlock, target, block4x4info, COMPONENT_Y);
+            } else {
+                block4x4_from_16x16(pToBlock, tmp16x16block, i * block_size, j * block_size);
+            }
+            /****************************************************
+             *                  DCT residual 4x4
+             ****************************************************/
+            pToDC_block[i][j] = dct(pToBlock);
+            /****************************************************
+             *              Quantization residual 4x4
+             ****************************************************/
+            quant_block(pToBlock, QS);
+        }
+    }
+    /****************************************************
+     *                  DCT DC block
+     ****************************************************/
+    int dc = dct(pToDC_block);
+    /****************************************************
+     *              Quantization DC block
+     ****************************************************/
+    quant_block(pToDC_block, QS);
     return dc;
 }
 
-void frame_coding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, size_t defHeight, BitStream &bitStream) {
+void frame_decoding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, size_t defHeight, BitStream &bitStream) {
+    LOG(MAIN, "%s(w=%lu, h=%lu)", __FUNCTION__, defWidth, defHeight);
+    size_t block_size = 16;
+    size_t blocks_in_width = defWidth / block_size;
+    size_t blocks_in_height = defHeight / block_size;
+    bool first_flag = true;
+    int dc_prev = 0;
+    /**************************
+    *     read frame_type
+    *     0 - I
+    *     1 - B
+    **************************/
+    //int frame_type = bitStream.readNext();
+    //LOG(INFO, "Frame type: %c", (frame_type == I) ? 'I' : 'P');
+    /**************************
+    *     read frame_data
+    **************************/
+
+    for (size_t i = 0; i < blocks_in_height; i++) {
+        for (size_t j = 0; j < blocks_in_width; j++) {
+            macroblock_info mb_res;
+            mc::block_info block16x16info(j * block_size, i * block_size, block_size, block_size);
+            BitStreamToMacroblockInfo(mb_res, bitStream);
+            LOG(INFO, "DC: %6d", mb_res.dc_level);
+            /****************************************************
+            *                 Addition macroblock
+            ****************************************************/
+            //addition_to_4x4_block(base, pToBlock, block4x4info, v);
+            if (mb_res.mb_type == P) {
+                addition_to_frame(target, mb_res, block16x16info);
+            }
+        }
+    }
+}
+
+void frame_coding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, size_t defHeight,
+                  BitStream &bitStream) {
     LOG(MAIN, "%s(base=%p, target=%p, w=%lu, h=%lu)", __FUNCTION__, base, target, defWidth, defHeight);
     size_t block_size = 16;
     size_t blocks_in_width = defWidth / block_size;
     size_t blocks_in_height = defHeight / block_size;
     bool first_flag = true;
     int dc_prev = 0;
-    macroblock_result mb_res;
-
+    /**************************
+     *     push frame_type
+     *     0 - I
+     *     1 - B
+     **************************/
+    int frame_type = static_cast<uint8_t>((base == nullptr) ? I : P);
+    //bitStream.pushBit(frame_type);
+    /**************************
+     *     push frame_data
+     **************************/
     for (size_t i = 0; i < blocks_in_height; i++) {
         for (size_t j = 0; j < blocks_in_width; j++) {
+            macroblock_info mb_res;
             mc::block_info block16x16info(j * block_size, i * block_size, block_size, block_size);
-            //mark_range(video->getFrame(8), blockInfo, COMPONENT_A);
-            if (base) {
-                mc::vect v = mc::logarithmicSearch(base, target, 20, 20, block16x16info);
-                mc::subtract_block(base, target, target, block16x16info, v);
-            }
-            int dc = macroblock_coding(target, block16x16info, mb_res);
 
+            int dc = macroblock_coding(base, target, block16x16info, frame_type, mb_res);
+            //mb_res.dc_level = dc;
             if (first_flag) {
-                mb_res.dc_level = dc;
+                mb_res.dc_level = dc/8;
                 first_flag = false;
             } else {
-                mb_res.dc_level = dc - dc_prev;
+                mb_res.dc_level = dc/8 - dc_prev;
             }
-
-            MacroblockResultToBitStream(mb_res, bitStream);
-            macroblock_result dec_res;
-            bitStream.readReset();
-            BitStreamToMacroblockResult(dec_res, bitStream);
-            if (mb_res.dc_level != 0) {
-                printf("===========================================\n");
-                printf("                Coding:\n");
-                printf("===========================================\n");
-                mb_res.print();
-                printf("===========================================\n");
-                printf("                Decoding:\n");
-                printf("===========================================\n");
-                dec_res.print();
-            }
-            return;
-            //return;
-            dc_prev = dc;
+            LOG(INFO, "DC: %6d", mb_res.dc_level);
+            MacroblockInfoToBitStream(mb_res, bitStream);
+            dc_prev = dc/8;
         }
     }
     //mc::block_info blockInfo1(100, 100, 4, 4);
     //save_component_to_files((TRIPLEBYTES **) target, video->bmFile(), video->bmInfo(), COMPONENT_A, "out.bmp");
 }
 
+void decoding(AVIMaker &aviMaker, BitStream &bitStream) {
+    //LOG(INFO, "%s", bitStream.toString().c_str());
+    bitStream.readReset();
+    size_t h = aviMaker.video()->height();
+    size_t w = aviMaker.video()->width();
+    TRIPLEYCbCr **base = nullptr;
+    TRIPLEYCbCr **target = new TRIPLEYCbCr *[h];
+    for (int i = 0; i < h; i++) {
+        target[i] = new TRIPLEYCbCr[w];
+    }
+    while (!bitStream.isEnd()) {
+        //read frame info
+        frame_decoding(base, target, w, h, bitStream);
+        aviMaker.addFrame(0, (TRIPLERGB **) target);
+        // LOG(INFO, "%d", bit);
+    }
+}
 
-void avi_to_h264(AVIMaker &aviMaker) {
+void coding(AVIMaker &aviMaker, BitStream &bitStream) {
     VideoStream *video = aviMaker.videoStreams[0]; //video();
-    TRIPLEYCbCr **base = RGB2YCbCr(video->getFrame(7), video->height(), video->width());
-    TRIPLEYCbCr **target = RGB2YCbCr(video->getFrame(8), video->height(), video->width());
+
     const size_t defHeight = video->height();
     const size_t defWidth = video->width();
-    BitStream bitStream;
-    frame_coding(nullptr, target, defWidth, defHeight, bitStream);
-    LOG(INFO, "RESULT: %s", bitStream.toString().c_str());
-    size_t block_size = 16;
+    TRIPLEYCbCr **base = nullptr;
+    TRIPLEYCbCr **target = nullptr;
+    for (int i = 0; i < video->getLength(); i++) {
+        if (i != 0) base = RGB2YCbCr(video->getFrame(i - 1), video->height(), video->width());
+        target = RGB2YCbCr(video->getFrame(i), video->height(), video->width());
+        frame_coding(nullptr, target, defWidth, defHeight, bitStream);
+        break;
+    }
+
+
+    LOG(INFO, "RESULT: %s", bitStream.toString(50).c_str());
+
+    return;
+    /*size_t block_size = 16;
     size_t blocks_in_width = defWidth / block_size;
     size_t blocks_in_height = defHeight / block_size;
     for (size_t i = 0; i < blocks_in_height; i++) {
@@ -332,8 +389,7 @@ void avi_to_h264(AVIMaker &aviMaker) {
             mc::block_info blockInfo(j * block_size, i * block_size, block_size, block_size);
             mark_range(video->getFrame(8), blockInfo, COMPONENT_A);
         }
-    }
-    return;
+    }*/
     //TRIPLEYCbCr **out = new TRIPLEYCbCr *[video->height()];
     //for (int i = 0; i < video->height(); i++) {
     //    out[i] = new TRIPLEYCbCr[video->width()];
@@ -346,7 +402,7 @@ void avi_to_h264(AVIMaker &aviMaker) {
     //size_t block_size = 16;
     //size_t blocks_in_width = defWidth / block_size;
     //size_t blocks_in_height = defHeight / block_size;
-    for (size_t i = 0; i < blocks_in_height; i++) {
+    /*for (size_t i = 0; i < blocks_in_height; i++) {
         for (size_t j = 0; j < blocks_in_width; j++) {
             //        mark_range(video->getFrame(8), blockInfo, COMPONENT_A);
 
@@ -355,8 +411,9 @@ void avi_to_h264(AVIMaker &aviMaker) {
             //mc::subtract_block(base, target, target, blockInfo, v);
         }
     }
+     */
     //save_component_to_files((TRIPLEBYTES **) target, video->bmFile(), video->bmInfo(), COMPONENT_A, "out.bmp");
-    mc::block_info blockInfo1(100, 100, 4, 4);
+    /*mc::block_info blockInfo1(100, 100, 4, 4);
     mc::block_info blockInfo2(120, 124, 4, 4);
     mc::block_info blockInfo3(124, 120, 4, 4);
     mc::block_info blockInfo4(124, 124, 4, 4);
@@ -368,50 +425,50 @@ void avi_to_h264(AVIMaker &aviMaker) {
     double **dc = new double *[2];
     for (int i = 0; i < 2; i++) {
         dc[i] = new double[2];
-    }
+    }*/
 
 
     /****************************************************
      *                  Read block
      ****************************************************/
     //block_from_frame(block, frame1, blockInfo1);
-    mc::vect v = mc::logarithmicSearch(base, target, 20, 20, blockInfo1);
-    subtract_to_4x4_block(base, target, block, blockInfo1, v);
-    print_block("BLOCK1:", block);
+    //mc::vect v = mc::logarithmicSearch(base, target, 20, 20, blockInfo1);
+    //subtract_to_4x4_block(base, target, block, blockInfo1, v);
+    //print_block("BLOCK1:", block);
     /****************************************************
      *                     DCT
      ****************************************************/
-    dc[0][0] = dct(block);
-    print_block("DCT:", block);
+    //dc[0][0] = dct(block);
+    //print_block("DCT:", block);
     /****************************************************
      *                   Quantization
      ****************************************************/
-    int QS = 9;
-    quant_block(block, QS);
-    print_block("QUANT:", block);
+    //int QS = 9;
+    //quant_block(block, QS);
+    //print_block("QUANT:", block);
     /****************************************************
      *                  Check Entropy
      ****************************************************/
-    int freq[512] = {0};
-    getFreq(freq, block);
-    LOG(INFO, "H = %f", blockEntropy(freq, 512, 15) * 15);
+    //int freq[512] = {0};
+    //getFreq(freq, block);
+    //LOG(INFO, "H = %f", blockEntropy(freq, 512, 15) * 15);
     /****************************************************
      *                  IQuantization
      ****************************************************/
-    iquant_block(block, QS);
-    print_block("IQUANT:", block);
+    //iquant_block(block, QS);
+    //print_block("IQUANT:", block);
     /****************************************************
      *                      IDCT
      ****************************************************/
-    idct(block);
-    print_block("IDCT:", block);
+    //idct(block);
+    //print_block("IDCT:", block);
 
     /****************************************************
      *                  Addition block
      ****************************************************/
-    addition_to_4x4_block(base, block, blockInfo1, v);
-    print_block(target, blockInfo1);
-    print_block("Result:", block);
+    //addition_to_4x4_block(base, block, blockInfo1, v);
+    //print_block(target, blockInfo1);
+    //print_block("Result:", block);
     /*
     block_from_frame(block, frame1, blockInfo2);
     print_block("BLOCK2:", block);
@@ -423,8 +480,9 @@ void avi_to_h264(AVIMaker &aviMaker) {
     print_block("BLOCK4:", block);
     dc[1][1] = dct(block);
 */
-    print_block2x2("DC:", dc);
-    /*LOG(INFO, "dc1=%f", dc);
+    //print_block2x2("DC:", dc);
+    /*
+    LOG(INFO, "dc1=%f", dc);
     dc = dc1 - dc2;
     LOG(INFO, "dc2=%f", dc);
     dc = dc2 - dc3;
@@ -452,7 +510,8 @@ void avi_to_h264(AVIMaker &aviMaker) {
     //LOG(INFO, "\n%s", block4x4.toString("DCT:").c_str());
 
 
-    /*int QS = 9;
+    /*
+    int QS = 9;
 
     quant_block(block, QS);
     print_block("QUANT:", block);
