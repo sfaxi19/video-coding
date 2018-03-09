@@ -106,6 +106,7 @@ static FILE *pLogFile = nullptr;
         if (pLogFile) fprintf(pLogFile, __VA_ARGS__); \
         printf(ANSI_COLOR_RESET "\n"); \
         if (pLogFile) fprintf(pLogFile, "\n"); \
+        if (msg == ERROR) { exit(1); } \
     } \
  }
 #endif

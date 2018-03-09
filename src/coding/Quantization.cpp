@@ -81,14 +81,14 @@ int LevelScale2(int m, int i, int j) {
 /*
  * Returns quantity of not zero elements
  */
-int quant_block(double **block, int QS) {
+int quant_block(int **block, int QS) {
     int num = 0;
     int f = (1 << (14 + (int) floor((double) QS / 6)));
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             //        block[i][j] = sign(block[i][j]) * ((abs(block[i][j]) * LevelScale2(QS % 6, i, j) + f) >> (15 + (int) floor((double)QS / 6)));
             double qstep = Qstep[QS];
-            block[i][j] = round(block[i][j] / qstep);
+            block[i][j] = static_cast<int>(round(block[i][j] / qstep));
             num += (block[i][j] == 0) ? 0 : 1;
         }
     }
@@ -96,13 +96,13 @@ int quant_block(double **block, int QS) {
     //block[0][0] = 0;
 }
 
-void iquant_block(double **block, int QS) {
+void iquant_block(int **block, int QS) {
     int f = 0;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             //block[i][j] = (((int) block[i][j] * LevelScale(QS % 6, i, j) * A(i, j)) >> ((int) floor(QS / 6))) >> 10;
             double qstep = Qstep[QS];
-            block[i][j] = round(block[i][j] * qstep);
+            block[i][j] = static_cast<int>(round(block[i][j] * qstep));
         }
     }
 }

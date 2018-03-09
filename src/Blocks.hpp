@@ -9,6 +9,8 @@
 #include <coding/DCT.hpp>
 #include <common/global.hpp>
 #include <motion_compensation/motion_compensation.h>
+#include <vector>
+#include <coding/BitStream/BitStream.hpp>
 #include "iostream"
 
 enum class MultipMode : int {
@@ -16,31 +18,71 @@ enum class MultipMode : int {
     REVERSE = 1,
     SIMPLE = 2
 };
-enum mbType : int {
+enum MBType : int {
     I = 0,
     P = 1
 };
 
-void print_block(const char *title, double **block);
+void print_block(const char *title, int **block);
 
+class MacroblockInfo;
 
-struct macroblock_info {
+class FrameInfo;
 
-    macroblock_info() {
-        dc_block = new double *[4];
+class FrameInfo {
+private:
+
+public:
+    uint8_t frame_type = 0;
+    std::vector<MacroblockInfo *> *macroblocks;
+
+    FrameInfo() {
+        macroblocks = new std::vector<MacroblockInfo *>;
+    }
+
+    ~FrameInfo() {
+        if (macroblocks) {
+            macroblocks->clear();
+            delete macroblocks;
+        }
+    }
+};
+
+class MacroblockInfo {
+private:
+
+public:
+    // 'block_pattern' consists of
+    // / 1 - if block non zeros
+    // \ 0 - otherwise
+    int dc_level = 0;
+    uint8_t mb_type = 0;
+    mc::vect v{};
+    int block_pattern[4][4]{};
+    int **dc_block;
+    int **block[4][4];
+
+    enum {
+        MODE_CODE = 1,
+        MODE_DECODE = 0
+    };
+
+    MacroblockInfo() {
+        LOG(MAIN, "MacroblockInfo[%p]::Constructor()", this);
+        dc_block = new int *[4];
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
-                block[i][j] = new double *[4];
+                block[i][j] = new int *[4];
                 for (int b = 0; b < 4; b++) {
-                    block[i][j][b] = new double[4];
+                    block[i][j][b] = new int[4];
                 }
             }
-            dc_block[i] = new double[4];
+            dc_block[i] = new int[4];
         }
     }
 
-    virtual ~macroblock_info() {
-        //LOG(WARN, "Macroblock_info destructor!");
+    virtual ~MacroblockInfo() {
+        LOG(MAIN, "MacroblockInfo[%p]::Destructor()", this);
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
                 for (int b = 0; b < 4; b++) {
@@ -53,6 +95,18 @@ struct macroblock_info {
         delete[] dc_block;
     }
 
+    void ioBitStream(BitStream &bitStream, int mode);
+
+    void toBitStream(BitStream &bitStream) {
+        LOG(MAIN, "MacroblockInfo[%p]::toBitStream(bitStream[%p])", this, bitStream);
+        ioBitStream(bitStream, MODE_CODE);
+    }
+
+    void fromBitSteam(BitStream &bitStream) {
+        LOG(MAIN, "MacroblockInfo[%p]::fromBitStream(bitStream[%p])", this, bitStream);
+        ioBitStream(bitStream, MODE_DECODE);
+    }
+
     void print() {
         printf("DC Level: %d\n", dc_level);
         print_block("DC_BLOCK:", dc_block);
@@ -63,15 +117,21 @@ struct macroblock_info {
         }
     }
 
-    // 'block_pattern' consists of
-    // / 1 - if block non zeros
-    // \ 0 - otherwise
-    int block_pattern[4][4]{};
-    double **block[4][4]{};
-    double **dc_block;
-    int dc_level = 0;
-    uint8_t mb_type = 0;
-    mc::vect v{};
+    bool equale(MacroblockInfo *mb_info) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (dc_block[i][j] != mb_info->dc_block[i][j]) return false;
+                int **block_cur = block[i][j];
+                int **block_dst = mb_info->block[i][j];
+                for (int c = 0; c < 4; c++) {
+                    for (int d = 0; d < 4; d++) {
+                        if (block_cur[c][d] != block_dst[c][d]) return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 };
 
 /*

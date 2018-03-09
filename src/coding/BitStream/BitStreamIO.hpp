@@ -8,8 +8,8 @@
 #include <Blocks.hpp>
 #include "BitStream.hpp"
 
-void BitStreamToMacroblockInfo(macroblock_info &mb_res, BitStream &bitStream);
+//void BitStreamToMacroblockInfo(MacroblockInfo *mb_res, BitStream &bitStream);
 
-void MacroblockInfoToBitStream(macroblock_info &mb_res, BitStream &bitStream);
+//void MacroblockInfoToBitStream(MacroblockInfo *mb_res, BitStream &bitStream);
 
 #endif //VIDEO_CODING_TOBITSTREAM_HPP

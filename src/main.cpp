@@ -13,6 +13,44 @@
 #include "Blocks.hpp"
 
 int main() {
+    /*
+    int fails_count = 0;
+    BitStream bitstr;
+    for (int i = -255; i < 255; i++) {
+        code_info code = getDCCodeInfo(i);
+        bitstr.pushBits(code);
+    }
+    for (int i = -255; i < 255; i++) {
+        code_info code = getExpCodeInfo(i);
+        bitstr.pushBits(code);
+    }
+    int check = -255;
+    while (!bitstr.isEnd()) {
+        int decode = getDCDecode(bitstr);
+        if (decode == check) {
+            LOG(INFO, "%d -> %d", check, decode);
+        } else {
+            LOG(WARN, "%d -> %d", check, decode);
+            fails_count++;
+        }
+        check++;
+        if (check == 255) break;
+    }
+    check = -255;
+    LOG(INFO, "----------------ExpCode------------------");
+    while (!bitstr.isEnd()) {
+        int decode = getExpDecode(bitstr);
+        if (decode == check) {
+            LOG(INFO, "%d -> %d", check, decode);
+        } else {
+            LOG(WARN, "%d -> %d", check, decode);
+            fails_count++;
+        }
+        check++;
+    }
+    LOG(INFO, "Fails: %d", fails_count);
+    return 0;
+     */
 //    int err = 0;
 //    int x = 5;
 //    BitStream bs;
@@ -33,13 +71,14 @@ int main() {
     //system("rm log.txt");
     AVIMaker avi_file("../avi-maker/resources/lr1_3.avi");
     StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
+
+    //AVIMaker avi_dec("../avi-maker/resources/lr1_3.avi");
+    //avi_dec.video()->releaseAllFrames();
     BitStream outBitStream;
+
     LOG(INFO, "Coding process...");
     coding(avi_file, outBitStream);
 
-
-    AVIMaker avi_dec("../avi-maker/resources/lr1_3.avi");
-    avi_dec.video()->releaseAllFrames();
     LOG(INFO, "Decoding process...");
     decoding(avi_file, outBitStream);
 

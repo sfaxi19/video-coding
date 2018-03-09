@@ -55,6 +55,15 @@ public:
      *       Other methods
      *********************************/
     std::string toString(size_t max_length = 0);
+
+    void print_priv_fields() {
+        printf("PRIVATE FIELDS FOR BitStream[%p]\n", this);
+        printf("bit pos      : %6d\n", m_bit_pos);
+        printf("read bit pos : %6d\n", m_read_bit_pos);
+        printf("byte pos     : %6d\n", m_byte_pos);
+        printf("bit length   : %6lu\n", m_bit_length);
+        printf("byte length  : %6lu\n", m_byte_length);
+    }
 };
 
 

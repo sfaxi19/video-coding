@@ -37,16 +37,18 @@ void ExpCodeInit();
 
 void ExpCodeGen();
 
-inline uint32_t getExpCode(int value) {
-    if (!init) ExpCodeInit();
-    return ExpCode[(255 + value) % 511].value;
-}
-
 inline code_info getExpCodeInfo(int value) {
+    if ((value < -255) || (value > 255)){
+        LOG(ERROR, "getExpCodeInfo(%d)", value);
+    }
     if (!init) ExpCodeInit();
     return ExpCode[(255 + value) % 511];
 }
 
+inline uint32_t getExpCode(int value) {
+    if (!init) ExpCodeInit();
+    return getExpCodeInfo(value).value;
+}
 
 int getExpDecode(BitStream &bitStream);
 

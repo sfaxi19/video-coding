@@ -97,7 +97,7 @@ void BitStream::pushBits(code_info code) {
 }
 
 uint8_t BitStream::readNext() {
-    //LOG(INFO, "%s(m_read_pos=%d)", __FUNCTION__, m_read_bit_pos);
+    if (isEnd()) LOG(ERROR, "%s(m_read_pos=%d)", __FUNCTION__, m_read_bit_pos);
     return getBit(m_read_bit_pos++);
 }
 

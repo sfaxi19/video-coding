@@ -55,8 +55,8 @@ const Block4x4_float mrxCT(CT);
 const Block4x4_float mrxE(E);
 */
 
-void multiple(double **block, double matrix[][4], double **out, MultipMode mode) {
-    double mrx[4][4];
+void multiple(int **block, double matrix[][4], int **out, MultipMode mode) {
+    int mrx[4][4];
     if (mode != MultipMode::SIMPLE) {
         for (int id_h = 0; id_h < 4; id_h++) {
             for (int id_w = 0; id_w < 4; id_w++) {
@@ -72,26 +72,28 @@ void multiple(double **block, double matrix[][4], double **out, MultipMode mode)
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (mode != MultipMode::SIMPLE) out[i][j] = mrx[i][j];
-            else out[i][j] = block[i][j] * matrix[i][j];
+            else out[i][j] = static_cast<int>(round(block[i][j] * matrix[i][j]));
         }
     }
 }
 
 
-void idct(double **block) {
+void idct(int **block) {
     multiple(block, E, block, MultipMode::SIMPLE);
     multiple(block, CT, block, MultipMode::REVERSE);
     multiple(block, C, block, MultipMode::NORM);
 }
 
-int dct(double **block) {
+int dct(int **block) {
     multiple(block, C, block, MultipMode::REVERSE);
     multiple(block, CT, block, MultipMode::NORM);
     multiple(block, E, block, MultipMode::SIMPLE);
-    return (int) block[0][0];
+    int dc = (int) block[0][0];
+    block[0][0] = 0;
+    return dc;
 }
 
-int dct_dc(double **block) {
+int dct_dc(int **block) {
     multiple(block, C_DC, block, MultipMode::REVERSE);
     multiple(block, C_DC, block, MultipMode::NORM);
     for (int i = 0; i < 4; i++) {
@@ -99,7 +101,7 @@ int dct_dc(double **block) {
             block[i][j] = block[i][j] / 2;
         }
     }//multiple(block, E, block, MultipMode::SIMPLE);
-    return (int) block[0][0];
+    return block[0][0];
 }
 
 /*

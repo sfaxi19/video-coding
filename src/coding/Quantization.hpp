@@ -5,8 +5,8 @@
 #ifndef QUANTIZATION_HPP
 #define QUANTIZATION_HPP
 
-int quant_block(double **block, int QS);
+int quant_block(int **block, int QS);
 
-void iquant_block(double **block, int QS);
+void iquant_block(int **block, int QS);
 
 #endif //QUANTIZATION_HPP
