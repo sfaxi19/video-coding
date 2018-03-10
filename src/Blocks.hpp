@@ -18,9 +18,14 @@ enum class MultipMode : int {
     REVERSE = 1,
     SIMPLE = 2
 };
-enum MBType : int {
+enum MBType : uint8_t {
     I = 0,
     P = 1
+};
+
+enum {
+    MODE_CODE = 1,
+    MODE_DECODE = 0
 };
 
 void print_block(const char *title, int **block);
@@ -29,23 +34,55 @@ class MacroblockInfo;
 
 class FrameInfo;
 
+
 class FrameInfo {
 private:
 
 public:
-    uint8_t frame_type = 0;
-    std::vector<MacroblockInfo *> *macroblocks;
+    int h = 0;
+    int w = 0;
+    int frame_type = 0;
+    std::vector<MacroblockInfo *> macroblocks;
 
-    FrameInfo() {
-        macroblocks = new std::vector<MacroblockInfo *>;
+    FrameInfo(int h, int w) : h(h), w(w) {
+        //macroblocks = new std::vector<MacroblockInfo *>;
+    }
+
+    void release() {
+        LOG(MAIN, "FrameInfo::release()");
+        for (MacroblockInfo *mb : macroblocks) {
+            delete mb;
+        }
+        macroblocks.clear();
+        frame_type = 0;
     }
 
     ~FrameInfo() {
-        if (macroblocks) {
-            macroblocks->clear();
-            delete macroblocks;
-        }
+        release();
     }
+
+    void ioBitStream(BitStream &bitStream, int mode);
+
+    void toBitStream(BitStream &bitStream) {
+        LOG(MAIN, "FrameInfo[%p]::toBitStream(bitStream[%p])", this, bitStream);
+        ioBitStream(bitStream, MODE_CODE);
+    }
+
+    void fromBitStream(BitStream &bitStream) {
+        LOG(MAIN, "FrameInfo[%p]::fromeBitStream(bitStream[%p])", this, bitStream);
+        ioBitStream(bitStream, MODE_DECODE);
+    }
+
+    std::string toString() {
+        std::string str = "Frame info:\n";
+        str.append("\tFrame type  : ").append((frame_type == I) ? "I" : "P").append("\n");
+        str.append("\tMacroblocks : ").append(std::to_string(macroblocks.size())).append("\n");
+        return str;
+    }
+
+    void save_to_frame(TRIPLEYCbCr **frame, MacroblockInfo *mb_info, mc::block_info block16x16pos);
+
+    void saveFrame(BITMAPFILEHEADER bmFile, BITMAPINFOHEADER bmInfo, std::string filename);
 };
 
 class MacroblockInfo {
@@ -61,11 +98,6 @@ public:
     int block_pattern[4][4]{};
     int **dc_block;
     int **block[4][4];
-
-    enum {
-        MODE_CODE = 1,
-        MODE_DECODE = 0
-    };
 
     MacroblockInfo() {
         LOG(MAIN, "MacroblockInfo[%p]::Constructor()", this);

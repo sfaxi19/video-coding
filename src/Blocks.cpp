@@ -61,3 +61,57 @@ void MacroblockInfo::ioBitStream(BitStream &bitStream, int mode) {
         }
     }
 }
+
+void FrameInfo::ioBitStream(BitStream &bitStream, int mode) {
+    /**************************
+     *       frame_type:
+     *         0 - I
+     *         1 - B
+     **************************/
+    if (mode == MODE_CODE) {
+        bitStream.pushBits(getExpCodeInfo(frame_type));
+    } else {
+        frame_type = getExpDecode(bitStream);
+    }
+    /**************************
+     *       frame_data
+     **************************/
+    if (mode == MODE_DECODE) {
+        int len = 3 * ((h * w) / 256);
+        macroblocks.resize(len);
+        for (int i = 0; i < len; i++) {
+            if (!macroblocks[i])macroblocks[i] = new MacroblockInfo;
+        }
+    }
+    for (auto mb : macroblocks) {
+        mb->ioBitStream(bitStream, mode);
+    }
+}
+
+void FrameInfo::saveFrame(BITMAPFILEHEADER bmFile, BITMAPINFOHEADER bmInfo, std::string filename) {
+    TRIPLEYCbCr **frame = new TRIPLEYCbCr *[h];
+    for (int i = 0; i < h; i++) {
+        frame[i] = new TRIPLEYCbCr[w];
+    }
+    for (int i = 0; i < ceil(h / 16); i++) {
+        for (int j = 0; j < ceil(w / 16); j++) {
+            mc::block_info block16x16pos(j * 16, i * 16, 16, 16);
+            save_to_frame(frame, macroblocks[i * (w / 16) + j], block16x16pos);
+        }
+    }
+    save_component_to_files((TRIPLEBYTES **) frame, bmFile, bmInfo, COMPONENT_Y, filename.c_str());
+}
+
+void FrameInfo::save_to_frame(TRIPLEYCbCr **frame, MacroblockInfo *mb_info, mc::block_info block16x16pos) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            int **pToBlock = mb_info->block[i][j];
+            for (int c = 0; c < 4; c++) {
+                for (int d = 0; d < 4; d++) {
+                    frame[block16x16pos.y + i * 4 + c][block16x16pos.x + j * 4 + d].Y = clip(pToBlock[c][d], 0,
+                                                                                             255);
+                }
+            }
+        }
+    }
+}

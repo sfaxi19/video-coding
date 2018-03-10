@@ -63,16 +63,20 @@ void multiple(int **block, double matrix[][4], int **out, MultipMode mode) {
                 mrx[id_h][id_w] = 0;
                 for (int i = 0; i < 4; i++) {
                     mrx[id_h][id_w] += (mode == MultipMode::NORM) ?
-                                       block[id_h][i] * matrix[i][id_w] :
-                                       matrix[id_h][i] * block[i][id_w];
+                                       round(block[id_h][i] * matrix[i][id_w]) :
+                                       round(matrix[id_h][i] * block[i][id_w]);
                 }
             }
         }
     }
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (mode != MultipMode::SIMPLE) out[i][j] = mrx[i][j];
-            else out[i][j] = static_cast<int>(round(block[i][j] * matrix[i][j]));
+            if (mode != MultipMode::SIMPLE) {
+                out[i][j] = mrx[i][j];
+            }
+            else {
+                out[i][j] = static_cast<int>(round(block[i][j] * matrix[i][j]));
+            }
         }
     }
 }
@@ -88,7 +92,7 @@ int dct(int **block) {
     multiple(block, C, block, MultipMode::REVERSE);
     multiple(block, CT, block, MultipMode::NORM);
     multiple(block, E, block, MultipMode::SIMPLE);
-    int dc = (int) block[0][0];
+    int dc = block[0][0];
     block[0][0] = 0;
     return dc;
 }

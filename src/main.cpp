@@ -70,7 +70,7 @@ int main() {
 //    return 0;
     //system("rm log.txt");
     AVIMaker avi_file("../avi-maker/resources/lr1_3.avi");
-    StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
+    //StreamHeader streamHeader = avi_file.videoStreams.at(0)->streamHeader();
 
     //AVIMaker avi_dec("../avi-maker/resources/lr1_3.avi");
     //avi_dec.video()->releaseAllFrames();
