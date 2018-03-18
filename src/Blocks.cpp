@@ -93,23 +93,32 @@ void FrameInfo::saveFrame(BITMAPFILEHEADER bmFile, BITMAPINFOHEADER bmInfo, std:
     for (int i = 0; i < h; i++) {
         frame[i] = new TRIPLEYCbCr[w];
     }
-    for (int i = 0; i < ceil(h / 16); i++) {
-        for (int j = 0; j < ceil(w / 16); j++) {
-            mc::block_info block16x16pos(j * 16, i * 16, 16, 16);
-            save_to_frame(frame, macroblocks[i * (w / 16) + j], block16x16pos);
+    int mbIdx = 0;
+    for (int component = COMPONENT_Y; component <= COMPONENT_CR; component++) {
+        for (int i = 0; i < ceil(h / 16); i++) {
+            for (int j = 0; j < ceil(w / 16); j++) {
+                mc::block_info block16x16pos(j * 16, i * 16, 16, 16);
+                save_to_frame(frame, macroblocks[mbIdx], block16x16pos, component);
+                mbIdx++;
+            }
         }
     }
-    save_component_to_files((TRIPLEBYTES **) frame, bmFile, bmInfo, COMPONENT_Y, filename.c_str());
+    //save_component_to_files((TRIPLEBYTES **) frame, bmFile, bmInfo, COMPONENT_Y, filename.c_str());
+    YCbCr2RGB((TRIPLEBYTES **) frame, h, w);
+    saveBMPFile(bmFile, bmInfo, (TRIPLERGB **) frame, filename.c_str());
 }
 
-void FrameInfo::save_to_frame(TRIPLEYCbCr **frame, MacroblockInfo *mb_info, mc::block_info block16x16pos) {
+void
+FrameInfo::save_to_frame(TRIPLEYCbCr **frame, MacroblockInfo *mb_info, mc::block_info block16x16pos, int component) {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             int **pToBlock = mb_info->block[i][j];
             for (int c = 0; c < 4; c++) {
                 for (int d = 0; d < 4; d++) {
-                    frame[block16x16pos.y + i * 4 + c][block16x16pos.x + j * 4 + d].Y = clip(pToBlock[c][d], 0,
-                                                                                             255);
+                    setComponent((TRIPLEBYTES **) frame,
+                                 block16x16pos.y + i * 4 + c,
+                                 block16x16pos.x + j * 4 + d,
+                                 clip(pToBlock[c][d], 0, 255), component);
                 }
             }
         }

@@ -175,7 +175,7 @@ void subtract_to_16x16block(TRIPLEYCbCr **base, TRIPLEYCbCr **target, int tmpBlo
 }
 
 
-int QS = 20;
+int QS = 28;
 
 void macroblock_decoding(TRIPLEYCbCr **base, mc::block_info &block16x16info, MacroblockInfo *mb_res) {
     LOG(MAIN, "%s(base=%p, x=%lu, y=%lu, w=%lu h=%lu)", __FUNCTION__, base,
@@ -227,6 +227,7 @@ void frame_decoding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, s
     size_t blocks_in_height = defHeight / block_size;
     FrameInfo frameInfo(defHeight, defWidth);
     frameInfo.fromBitStream(bitStream);
+    static int frameIdx = 0;
     int idx = 0;
     for (int component = COMPONENT_Y; component <= COMPONENT_CR; component++) {
         bool first_flag = true;
@@ -242,9 +243,9 @@ void frame_decoding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, s
                 }
                 dc_prev = mb_res->dc_level;
 
-                mb_res->dc_level = mb_res->dc_level*8;
+                mb_res->dc_level = mb_res->dc_level * 8;
                 //mb_res->dc_level = mb_res->dc_level * 8;
-                if (idx == 200) frameInfo.macroblocks[idx]->print();
+                //if (idx == 200) frameInfo.macroblocks[idx]->print();
 
                 macroblock_decoding(base, block16x16info, mb_res);
                 /****************************************************
@@ -261,7 +262,7 @@ void frame_decoding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, s
         }
     }
     LOG(INFO, "\n%s", frameInfo.toString().c_str());
-    frameInfo.saveFrame(bmFile, bmInfo, "decode.bmp");
+    frameInfo.saveFrame(bmFile, bmInfo, "decode/in" + std::to_string(frameIdx++) + ".bmp");
 }
 
 
@@ -270,6 +271,7 @@ void frame_decoding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t defWidth, s
 
 void decoding(AVIMaker &aviMaker, BitStream &bitStream) {
     LOG(MAIN, "%s()", __FUNCTION__);
+    system("mkdir -p decode");
     bitStream.readReset();
     size_t h = aviMaker.video()->height();
     size_t w = aviMaker.video()->width();
@@ -376,15 +378,15 @@ void frame_coding(TRIPLEYCbCr **base, TRIPLEYCbCr **target, size_t frameWidth, s
                 mc::block_info block16x16pos(j * block_size, i * block_size, block_size, block_size);
 
                 int dc = macroblock_coding(base, target, block16x16pos, frameInfo.frame_type, mb_res, component);
-                mb_res->dc_level = dc/8;
+                mb_res->dc_level = dc / 8;
 
                 if (first_flag) {
                     first_flag = false;
                 } else {
                     mb_res->dc_level = mb_res->dc_level - dc_prev;
                 }
-                dc_prev = dc/8;
-                LOG(INFO, "dc=%d -> dc'=%d", dc, mb_res->dc_level);
+                dc_prev = dc / 8;
+                //LOG(INFO, "dc=%d -> dc'=%d", dc, mb_res->dc_level);
                 frameInfo.macroblocks.push_back(mb_res);
             }
         }
@@ -425,7 +427,7 @@ void transform_test(VideoStream *video) {
     /****************************************************
      *                   Quantization
      ****************************************************/
-    int QS = 20;
+    //int QS = 22;
     quant_block(block, QS);
     print_block("QUANT:", block);
     /****************************************************
@@ -460,7 +462,6 @@ void coding(AVIMaker &aviMaker, BitStream &bitStream) {
         if (i != 0) base = RGB2YCbCr(video->getFrame(i - 1), video->height(), video->width());
         target = RGB2YCbCr(video->getFrame(i), video->height(), video->width());
         frame_coding(nullptr, target, defWidth, defHeight, bitStream);
-        break;
     }
 
 

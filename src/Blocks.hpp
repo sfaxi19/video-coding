@@ -80,7 +80,7 @@ public:
         return str;
     }
 
-    void save_to_frame(TRIPLEYCbCr **frame, MacroblockInfo *mb_info, mc::block_info block16x16pos);
+    void save_to_frame(TRIPLEYCbCr **frame, MacroblockInfo *mb_info, mc::block_info block16x16pos, int component);
 
     void saveFrame(BITMAPFILEHEADER bmFile, BITMAPINFOHEADER bmInfo, std::string filename);
 };
